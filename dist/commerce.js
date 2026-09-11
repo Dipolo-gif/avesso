@@ -36,13 +36,22 @@ export function changeQuantity(items,key,delta){
  return items.map(x=>x.key===key?{...x,qty:Math.min(10,x.qty+delta)}:x).filter(x=>x.qty>0);
 }
 export function validImageURL(value){return typeof value==='string'&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(value)&&value.length<1500000;}
+export function sanitizeDesign(d){
+ if(!d||typeof d!=='object')return null;
+ const mode=d.mode==='brief'?'brief':'create';
+ const str=(v,max)=>typeof v==='string'?v.slice(0,max):'';
+ const num=(v,min,max,fallback)=>Number.isFinite(v)?Math.min(max,Math.max(min,v)):fallback;
+ const base={mode,color:['white','black'].includes(d.color)?d.color:'white',size:SIZES.includes(d.size)?d.size:'M',scale:num(d.scale,45,100,80),y:num(d.y,-15,15,0),rotation:num(d.rotation,-15,15,0)};
+ if(mode==='brief')return {...base,brief:str(d.brief,400)};
+ return {...base,text:str(d.text,70),font:['condensed','sans','serif'].includes(d.font)?d.font:'condensed',ink:/^#[0-9a-f]{6}$/i.test(d.ink)?d.ink:'#1737bc',image:validImageURL(d.image)?d.image:null};
+}
 export function normalizeCart(value){
  if(!Array.isArray(value))return [];
  return value.slice(0,30).flatMap(x=>{
   if(!x||!SIZES.includes(x.size)||!Number.isInteger(x.qty)||x.qty<1||x.qty>10)return [];
   const p=PRODUCTS.find(p=>p.id===x.id);
   if(p)return [{...p,key:`${p.id}-${x.size}`,size:x.size,qty:x.qty}];
-  if(x.id==='custom'&&typeof x.key==='string'&&/^custom-[\w-]+$/.test(x.key)&&['white','black'].includes(x.base)&&validImageURL(x.preview)){const design=x.design&&typeof x.design==='object'?x.design:null,mode=customMode(design);return [{id:'custom',key:x.key,name:CUSTOM[mode].name,category:'custom',base:x.base,color:x.base==='white'?'Branco giz':'Preto lavado',size:x.size,qty:x.qty,price:CUSTOM[mode].price,preview:x.preview,design}];}
+  if(x.id==='custom'&&typeof x.key==='string'&&/^custom-[\w-]+$/.test(x.key)&&['white','black'].includes(x.base)&&validImageURL(x.preview)){const design=sanitizeDesign(x.design),mode=customMode(design);return [{id:'custom',key:x.key,name:CUSTOM[mode].name,category:'custom',base:x.base,color:x.base==='white'?'Branco giz':'Preto lavado',size:x.size,qty:x.qty,price:CUSTOM[mode].price,preview:x.preview,design}];}
   return [];
  });
 }
