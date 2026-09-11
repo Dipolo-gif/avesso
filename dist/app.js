@@ -291,31 +291,81 @@ $('#password-form').addEventListener('submit',e=>{
 $('#google-signin').addEventListener('click',()=>{setAuthStatus('Redirecionando para o Google…');signInWithGoogle().catch(error=>setAuthStatus(error.message,'error'));});
 
 const ORDER_STATUS={aguardando_pagamento:'Aguardando pagamento',pago:'Pagamento confirmado',em_producao:'Em produção',enviado:'Enviado',entregue:'Entregue',cancelado:'Cancelado'};
+async function loadProfile(){if(profile||!getUser())return profile;try{profile=await fetchProfile();}catch{profile=null;}return profile;}
+const UF_LIST=[['AC','Acre'],['AL','Alagoas'],['AP','Amapá'],['AM','Amazonas'],['BA','Bahia'],['CE','Ceará'],['DF','Distrito Federal'],['ES','Espírito Santo'],['GO','Goiás'],['MA','Maranhão'],['MT','Mato Grosso'],['MS','Mato Grosso do Sul'],['MG','Minas Gerais'],['PA','Pará'],['PB','Paraíba'],['PR','Paraná'],['PE','Pernambuco'],['PI','Piauí'],['RJ','Rio de Janeiro'],['RN','Rio Grande do Norte'],['RS','Rio Grande do Sul'],['RO','Rondônia'],['RR','Roraima'],['SC','Santa Catarina'],['SP','São Paulo'],['SE','Sergipe'],['TO','Tocantins']];
 function shipLabel(s){return s==='express'?'Frete expresso':'Frete padrão';}
 function orderCardHTML(o){
  const items=(o.order_items||[]).map(i=>`<li><span class="oi-name">${esc(i.name)}</span><span class="oi-meta">${i.base==='white'?'Branco giz':'Preto lavado'} · Tam ${esc(i.size)} · ${esc(i.qty)}×</span><span class="oi-price">${money((i.unit_price_cents||0)*i.qty)}</span></li>`).join('');
  const st=o.status||'';
  return `<article class="order-card"><div class="order-card-top"><div class="order-code-wrap"><span class="order-code">${esc(o.code)}</span><span class="order-date">${esc(new Date(o.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}))}</span></div><span class="status-badge status-${esc(st)}">${esc(ORDER_STATUS[st]||st)}</span></div><ul class="order-items">${items}</ul><div class="order-card-foot"><span class="order-ship">${esc(shipLabel(o.shipping))} · ${esc(o.payment)}</span><span class="order-total">Total <strong>${money(o.total_cents)}</strong></span></div></article>`;
 }
-async function loadProfile(){if(profile||!getUser())return profile;try{profile=await fetchProfile();}catch{profile=null;}return profile;}
+function maskCEP(s){return s.replace(/\D/g,'').slice(0,8).replace(/(\d{5})(\d)/,'$1-$2');}
+function maskCPF(s){return s.replace(/\D/g,'').slice(0,11).replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');}
+function maskPhone(s){s=s.replace(/\D/g,'').slice(0,11);if(s.length<=10)return s.replace(/(\d{2})(\d)/,'($1) $2').replace(/(\d{4})(\d{1,4})$/,'$1-$2');return s.replace(/(\d{2})(\d)/,'($1) $2').replace(/(\d{5})(\d{1,4})$/,'$1-$2');}
+function validCPF(cpf){cpf=cpf.replace(/\D/g,'');if(cpf.length!==11||/^(\d)\1{10}$/.test(cpf))return false;let s=0;for(let i=0;i<9;i++)s+=+cpf[i]*(10-i);let d=11-s%11;if(d>=10)d=0;if(d!==+cpf[9])return false;s=0;for(let i=0;i<10;i++)s+=+cpf[i]*(11-i);d=11-s%11;if(d>=10)d=0;return d===+cpf[10];}
+function resizeAvatar(src){return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>{const size=200,c=document.createElement('canvas');c.width=c.height=size;const ctx=c.getContext('2d');const scale=Math.max(size/img.width,size/img.height),w=img.width*scale,h=img.height*scale;ctx.drawImage(img,(size-w)/2,(size-h)/2,w,h);resolve(c.toDataURL('image/webp',.82));};img.onerror=()=>reject(new Error('Não foi possível ler essa imagem.'));img.src=src;});}
+async function loadCities(uf,cityInput,keep){
+ const dl=$('#doavesso-cities');if(dl)dl.innerHTML='';
+ cityInput.disabled=false;if(!keep)cityInput.value='';
+ if(!uf)return;
+ try{const res=await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`);if(!res.ok)return;const cities=await res.json();if(dl)dl.innerHTML=cities.map(c=>`<option value="${esc(c.nome)}"></option>`).join('');}catch{}
+}
+async function cepLookup(cep,fields){
+ const digits=cep.replace(/\D/g,'');if(digits.length!==8)return;
+ fields.status.textContent='Buscando endereço…';
+ try{const res=await fetch(`https://viacep.com.br/ws/${digits}/json/`);if(!res.ok)throw 0;const d=await res.json();if(d.erro){fields.status.textContent='CEP não encontrado.';return;}
+  if(d.uf){fields.state.value=d.uf;await loadCities(d.uf,fields.city,false);}
+  if(d.localidade)fields.city.value=d.localidade;
+  if(d.logradouro&&!fields.address.value.trim())fields.address.value=d.logradouro;
+  fields.status.textContent='Endereço preenchido pelo CEP.';fields.address.focus();
+ }catch{fields.status.textContent='Não foi possível buscar o CEP agora. Preencha manualmente.';}
+}
+function avatarInner(p,user){return p&&p.avatar?`<img src="${esc(p.avatar)}" alt="Sua foto de perfil">`:esc((user.name||user.email||'?').trim().charAt(0).toUpperCase());}
 async function showAccount(tab){
  const user=getUser();if(!user){openAuth('login');return;}
  $('#account-content').innerHTML='<p class="helper">Carregando sua conta…</p>';openDialog('#account-dialog');
  let orders=[],p=null;
  try{[orders,p]=await Promise.all([fetchMyOrders(),loadProfile()]);}catch(error){$('#account-content').innerHTML=`<p class="helper">${esc(error.message)}</p>`;return;}
- const initial=esc((user.name||user.email||'?').trim().charAt(0).toUpperCase());
+ let avatarData=p?.avatar||'';
  const ordersPanel=orders.length?`<div class="order-list">${orders.map(orderCardHTML).join('')}</div>`:'<div class="empty-state"><h3>Nenhum pedido ainda.</h3><p>Quando você comprar logado, seus pedidos aparecem aqui com o status atualizado.</p><button class="button button-blue" id="empty-shop">Ver a coleção <span>↗</span></button></div>';
- const profilePanel=`<form id="profile-form" class="profile-form"><p class="panel-note">Estes dados preenchem o checkout automaticamente.</p><label>Nome<input name="name" maxlength="80" value="${esc(p?.name||'')}" autocomplete="name"></label><div class="field-row"><label>CEP<input name="cep" inputmode="numeric" pattern="([0-9]{5}-?[0-9]{3})?" maxlength="9" value="${esc(p?.cep||'')}" autocomplete="postal-code"></label><label>Cidade<input name="city" maxlength="80" value="${esc(p?.city||'')}" autocomplete="address-level2"></label></div><label>Endereço e número<input name="address" maxlength="160" value="${esc(p?.address||'')}" autocomplete="street-address"></label><div class="profile-actions"><button type="submit" class="button button-blue">Salvar dados <span>→</span></button>${user.provider==='google'?'':'<button type="button" class="text-button" id="change-password">Trocar senha</button>'}</div></form>`;
- $('#account-content').innerHTML=`<header class="account-id"><span class="account-avatar" aria-hidden="true">${initial}</span><div class="account-id-text"><strong>${esc(user.name||firstName(user))}</strong><p>${esc(user.email)}${user.provider==='google'?' · <span class="provider-badge">Google</span>':''}</p></div><button class="account-signout" id="sign-out">Sair</button></header><nav class="account-tabs" role="tablist" aria-label="Seções da conta"><button type="button" role="tab" class="account-tab" data-acc-tab="orders" aria-selected="true">Pedidos${orders.length?`<span class="tab-count">${orders.length}</span>`:''}</button><button type="button" role="tab" class="account-tab" data-acc-tab="profile" aria-selected="false">Perfil</button></nav><section class="account-panel" data-acc-panel="orders">${ordersPanel}</section><section class="account-panel" data-acc-panel="profile" hidden>${profilePanel}</section>`;
+ const cityEnabled=!!(p?.state||p?.city);
+ const profilePanel=`<form id="profile-form" class="profile-form" novalidate>
+  <div class="avatar-field"><div class="avatar-preview" id="avatar-preview">${avatarInner(p,user)}</div><div class="avatar-actions"><label class="text-button avatar-upload" for="avatar-input">${p?.avatar?'Trocar foto':'Enviar foto'}</label><input id="avatar-input" type="file" accept="image/png,image/jpeg,image/webp" hidden><button type="button" class="text-button" id="avatar-remove"${p?.avatar?'':' hidden'}>Remover</button><p class="helper" id="avatar-status">Foto opcional · JPG, PNG ou WebP · até 5 MB</p></div></div>
+  <p class="panel-note">Seus dados ficam só com você e preenchem o checkout automaticamente.</p>
+  <label>Nome completo<input name="name" maxlength="80" value="${esc(p?.name||'')}" autocomplete="name" placeholder="Como no documento"></label>
+  <div class="field-row"><label>Telefone<input name="phone" inputmode="tel" maxlength="16" value="${esc(p?.phone?maskPhone(p.phone):'')}" autocomplete="tel" placeholder="(00) 00000-0000"></label><label>CPF<input name="cpf" inputmode="numeric" maxlength="14" value="${esc(p?.cpf?maskCPF(p.cpf):'')}" autocomplete="off" placeholder="000.000.000-00"></label></div>
+  <div class="field-row"><label>CEP<input name="cep" inputmode="numeric" maxlength="9" value="${esc(p?.cep||'')}" autocomplete="postal-code" placeholder="00000-000"></label><label>País<select name="country"><option value="BR"${(p?.country||'BR')==='BR'?' selected':''}>Brasil</option></select></label></div>
+  <div class="field-row"><label>Estado<select name="state"><option value="">Selecione…</option>${UF_LIST.map(([s,n])=>`<option value="${s}"${p?.state===s?' selected':''}>${esc(n)}</option>`).join('')}</select></label><label>Cidade<input name="city" list="doavesso-cities" maxlength="80" value="${esc(p?.city||'')}" autocomplete="address-level2" placeholder="${cityEnabled?'Sua cidade':'Escolha o estado primeiro'}"${cityEnabled?'':' disabled'}><datalist id="doavesso-cities"></datalist></label></div>
+  <label>Endereço e número<input name="address" maxlength="160" value="${esc(p?.address||'')}" autocomplete="street-address" placeholder="Rua, número, complemento"></label>
+  <div class="profile-actions"><button type="submit" class="button button-blue">Salvar dados <span>→</span></button>${user.provider==='google'?'':'<button type="button" class="text-button" id="change-password">Trocar senha</button>'}</div>
+ </form>`;
+ $('#account-content').innerHTML=`<header class="account-id"><span class="account-avatar" aria-hidden="true">${avatarInner(p,user)}</span><div class="account-id-text"><strong>${esc(user.name||firstName(user))}</strong><p>${esc(user.email)}${user.provider==='google'?' · <span class="provider-badge">Google</span>':''}</p></div><button class="account-signout" id="sign-out">Sair</button></header><nav class="account-tabs" role="tablist" aria-label="Seções da conta"><button type="button" role="tab" class="account-tab" data-acc-tab="orders" aria-selected="true">Pedidos${orders.length?`<span class="tab-count">${orders.length}</span>`:''}</button><button type="button" role="tab" class="account-tab" data-acc-tab="profile" aria-selected="false">Perfil</button></nav><section class="account-panel" data-acc-panel="orders">${ordersPanel}</section><section class="account-panel" data-acc-panel="profile" hidden>${profilePanel}</section>`;
  const accTabs=$$('.account-tab');
  accTabs.forEach(t=>t.addEventListener('click',()=>{accTabs.forEach(x=>x.setAttribute('aria-selected',String(x===t)));$$('.account-panel').forEach(pl=>{pl.hidden=pl.dataset.accPanel!==t.dataset.accTab;});}));
  if(tab==='profile')$('.account-tab[data-acc-tab="profile"]')?.click();
  $('#empty-shop')?.addEventListener('click',()=>{closeDialog($('#account-dialog'));location.hash='#colecao';});
  $('#sign-out').addEventListener('click',async()=>{await signOut();closeDialog($('#account-dialog'));toast('Você saiu da sua conta.');});
  $('#change-password')?.addEventListener('click',()=>{closeDialog($('#account-dialog'));openAuth('password');});
- $('#profile-form').addEventListener('submit',e=>{
-  e.preventDefault();const form=e.target;if(!form.reportValidity())return;
-  busyToast(form,async()=>{const data=Object.fromEntries(['name','cep','city','address'].map(k=>[k,form.elements.namedItem(k).value.trim()]));await updateProfile(data);profile={...profile,...data};toast('Dados salvos.');});
+ const form=$('#profile-form'),el=n=>form.elements.namedItem(n);
+ const stateEl=el('state'),cityEl=el('city'),addressEl=el('address'),cepEl=el('cep'),statusEl=$('#avatar-status');
+ if(p?.state)loadCities(p.state,cityEl,true);
+ stateEl.addEventListener('change',()=>loadCities(stateEl.value,cityEl,false));
+ cepEl.addEventListener('input',()=>{cepEl.value=maskCEP(cepEl.value);if(cepEl.value.replace(/\D/g,'').length===8)cepLookup(cepEl.value,{state:stateEl,city:cityEl,address:addressEl,status:statusEl});});
+ el('cpf').addEventListener('input',e=>e.target.value=maskCPF(e.target.value));
+ el('phone').addEventListener('input',e=>e.target.value=maskPhone(e.target.value));
+ const setAvatar=data=>{avatarData=data;const inner=data?`<img src="${esc(data)}" alt="Sua foto de perfil">`:esc((user.name||user.email||'?').trim().charAt(0).toUpperCase());$('#avatar-preview').innerHTML=inner;$('.account-avatar').innerHTML=inner;$('#avatar-remove').hidden=!data;$('.avatar-upload').textContent=data?'Trocar foto':'Enviar foto';};
+ $('#avatar-input').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5*1024*1024){statusEl.textContent='Escolha JPG, PNG ou WebP de até 5 MB.';e.target.value='';return;}statusEl.textContent='Preparando foto…';try{const data=await resizeAvatar(await readAsDataURL(file));setAvatar(data);statusEl.textContent='Foto pronta. Salve para confirmar.';}catch(err){statusEl.textContent=err.message;}e.target.value='';});
+ $('#avatar-remove').addEventListener('click',()=>{setAvatar('');statusEl.textContent='Foto removida. Salve para confirmar.';});
+ form.addEventListener('submit',e=>{
+  e.preventDefault();
+  const cpfDigits=el('cpf').value.replace(/\D/g,''),phoneDigits=el('phone').value.replace(/\D/g,''),cepDigits=cepEl.value.replace(/\D/g,'');
+  if(cepDigits&&cepDigits.length!==8){toast('CEP incompleto.');return;}
+  if(phoneDigits&&phoneDigits.length<10){toast('Telefone incompleto.');return;}
+  if(cpfDigits&&!validCPF(cpfDigits)){toast('CPF inválido. Confira os números.');return;}
+  busyToast(form,async()=>{
+   const data={name:el('name').value.trim(),cep:cepEl.value.trim(),country:el('country').value||'BR',state:stateEl.value||null,city:cityEl.value.trim(),address:addressEl.value.trim(),phone:phoneDigits||null,cpf:cpfDigits||null,avatar:avatarData||null};
+   await updateProfile(data);profile={...profile,...data};renderAuthState();toast('Perfil salvo.');
+  });
  });
 }
 async function busyToast(form,work){const button=$('button[type=submit]',form);button.disabled=true;try{await work();}catch(error){toast(error.message);}finally{button.disabled=false;}}

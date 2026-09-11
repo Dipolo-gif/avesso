@@ -128,8 +128,8 @@ export async function uploadDesign(path,blob){
 }
 export async function fetchProfile(){
  if(!session)return null;
- const rows=await handle(await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=name,cep,city,address&id=eq.${session.user.id}`,{headers:await authHeaders()}));
- return rows[0]||{name:'',cep:'',city:'',address:''};
+ const rows=await handle(await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=name,cep,city,address,phone,cpf,country,state,avatar&id=eq.${session.user.id}`,{headers:await authHeaders()}));
+ return rows[0]||{name:'',cep:'',city:'',address:'',phone:'',cpf:'',country:'BR',state:'',avatar:''};
 }
 export async function updateProfile(profile){
  const headers=await authHeaders();

@@ -20,6 +20,7 @@ Projeto `doavesso` (região São Paulo). O navegador usa a chave pública de `di
 - `newsletter_subscribers`: só por `subscribe_newsletter()`.
 - `get_order(código, e-mail)`: consulta de status sem login.
 - Contas (Supabase Auth): e-mail + senha com confirmação obrigatória, senha mínima de 8 caracteres com letras e números, redefinição por e-mail, e botão “Continuar com Google” (PKCE) — ativo assim que o provedor for configurado no painel. `profiles` guarda nome e endereço de entrega (RLS: só o dono). Pedidos feitos logado recebem `user_id`; o cliente vê os próprios pedidos em “Minha conta” via RLS. Compra como visitante continua possível.
+- `profiles` também guarda telefone, CPF, país/estado, foto (avatar em data URL, ≤80 KB) — colunas opcionais, RLS por dono; a cidade usa a API do IBGE e o CEP usa o ViaCEP (liberados na CSP).
 - Storage `designs` (privado): prévia e arte de cada item do estúdio, em `uuid/preview.jpg` e `uuid/art.webp`.
 
 Pedidos e artes são vistos no painel do Supabase (Table Editor → `orders`/`order_items`; Storage → `designs`). Para aplicar as migrações em um projeto novo, execute os arquivos de `supabase/migrations/` em ordem no SQL Editor e faça o seed dos produtos.
