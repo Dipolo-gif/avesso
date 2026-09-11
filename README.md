@@ -33,6 +33,7 @@ Se a API estiver fora do ar ou a chave não estiver configurada, o site cai no m
 - `dist/app.js`: interações, editor canvas, checkout, histórico e consulta de pedidos.
 - `dist/commerce.js`: catálogo embutido (fallback), preços em centavos, totais, saneamento da sacola.
 - `dist/api.js`: acesso ao Supabase (catálogo, funções, upload de artes) e cliente de autenticação (sessão, login, cadastro, Google/PKCE, redefinição de senha) sem biblioteca externa.
+- `dist/fonts/`: Barlow Condensed (4 pesos) e Manrope (variável), subconjunto latino, hospedadas no próprio site — sem chamadas ao Google Fonts.
 - `dist/assets/`: versões WebP responsivas (com JPEG de fallback) das três fotografias, geradas por `scripts/optimize-images.mjs`.
 - `assets-src/`: originais em PNG, fora do site publicado.
 - `supabase/migrations/`: esquema, RLS, funções e políticas do Storage.

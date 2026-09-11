@@ -21,7 +21,7 @@ Arquitetura: site estático no GitHub Pages + Supabase (Postgres, Storage) acess
 | 15 | Vazar conteúdo | Pedidos e artes não são legíveis pela API pública (401/400). Erros do servidor mostrados ao usuário só quando são mensagens de validação (códigos 22023/53400); o resto vira mensagem genérica. | `dist/api.js` |
 | 16 | Restringir uploads | Bucket privado, 5 MB, apenas `image/webp` e `image/jpeg`, nomes `uuid/preview.jpg` ou `uuid/art.webp`; imagens reencodadas no navegador antes de subir (remove metadados). Sem leitura pública. | migração 0001 |
 | 17 | Trim respostas de API | `select` explícito de colunas no catálogo; funções devolvem só o necessário (`get_order` não devolve endereço). | `dist/api.js`, `get_order` |
-| 18 | Security headers | CSP (scripts só do próprio site, conexões só ao Supabase), referrer policy, `X-Frame-Options`, `Permissions-Policy`, COOP/CORP, `nosniff`. No GitHub Pages os cabeçalhos HTTP não são configuráveis, então a CSP vai via `<meta>`; o servidor local envia todos. | `index.html`, `server.mjs` |
+| 18 | Security headers | CSP (scripts, estilos e fontes só do próprio site; conexões só ao Supabase), referrer policy, `X-Frame-Options`, `Permissions-Policy`, COOP/CORP, `nosniff`. No GitHub Pages os cabeçalhos HTTP não são configuráveis, então a CSP vai via `<meta>`; o servidor local envia todos. | `index.html`, `server.mjs` |
 | 19 | Forçar HTTPS | GitHub Pages com "Enforce HTTPS" e `upgrade-insecure-requests` na CSP. | Pages |
 | 20 | Scan de dependências | `npm audit --audit-level=high` no CI antes de publicar; Dependabot semanal (npm e Actions); alertas e correções automáticas ativos. O site não tem dependência em runtime. | `.github/` |
 

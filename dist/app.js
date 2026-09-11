@@ -11,7 +11,7 @@ function renderCatalog(){
  let products=PRODUCTS.filter(p=>(filter==='all'||p.category===filter)&&`${p.name} ${p.color}`.toLocaleLowerCase('pt-BR').includes(query));
  if($('#sort').value==='price-low')products.sort((a,b)=>a.price-b.price);
  if($('#sort').value==='price-high')products.sort((a,b)=>b.price-a.price);
- $('#product-grid').innerHTML=products.map((p,i)=>`<article class="product-card" style="animation-delay:${i*60}ms"><button class="product-image-button" data-product="${p.id}" aria-label="Ver ${p.name}"><div class="product-visual">${teePicture(p.base,`${p.name}, ${p.color}`,'(max-width:700px) 48vw, 24vw','loading="lazy"')}${graphicHTML(p)}</div><span class="product-tag">${p.tag}</span><span class="product-add" aria-hidden="true">＋</span></button><div class="product-meta"><h3><a href="#produto-${p.id}">${p.name}</a></h3><span class="price">${money(p.price)}</span></div><p class="installments">${INSTALLMENTS}x de ${money(installment(p.price))} sem juros</p><div class="product-sub"><span><i class="color-dot" style="background:${p.base==='black'?'#28292b':'#fafafa'}"></i>${p.color}</span><span>P — GG</span></div></article>`).join('');
+ $('#product-grid').innerHTML=products.map((p,i)=>`<article class="product-card" style="animation-delay:${i*60}ms"><button class="product-image-button" data-product="${p.id}"><span class="sr-only">Ver ${p.name}: </span><div class="product-visual">${teePicture(p.base,`${p.name}, ${p.color}`,'(max-width:700px) 48vw, 24vw','loading="lazy"')}${graphicHTML(p)}</div><span class="product-tag">${p.tag}</span><span class="product-add" aria-hidden="true">＋</span></button><div class="product-meta"><h3><a href="#produto-${p.id}">${p.name}</a></h3><span class="price">${money(p.price)}</span></div><p class="installments">${INSTALLMENTS}x de ${money(installment(p.price))} sem juros</p><div class="product-sub"><span><i class="color-dot" style="background:${p.base==='black'?'#28292b':'#fafafa'}"></i>${p.color}</span><span>P — GG</span></div></article>`).join('');
  $('#product-count').textContent=`${products.length} ${products.length===1?'peça':'peças'} / coleção 01`;
  $('#empty-search').hidden=products.length>0;
 }
@@ -226,7 +226,7 @@ $('#design-form').addEventListener('submit',async e=>{
 function route(){
  const hash=location.hash||'#inicio',studio=hash==='#estudio';
  $('#shop-view').hidden=studio;$('#studio-view').hidden=!studio;document.documentElement.classList.toggle('studio',studio);
- document.title=studio?'DOAVESSO Studio — Crie sua camiseta':'DOAVESSO — Vista do seu jeito.';
+ document.title=studio?'Crie sua camiseta personalizada — doavesso Studio':'doavesso — Camisetas oversized e estampas personalizadas';
  if(hash.startsWith('#produto-'))showProduct(hash.slice(9));
  if(studio){window.scrollTo({top:0,behavior:'instant'});renderDesign();}
  else if(['#inicio','#colecao','#sobre'].includes(hash))requestAnimationFrame(()=>$(hash).scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
