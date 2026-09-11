@@ -1,0 +1,17 @@
+import {readFile,access} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+import assert from 'node:assert/strict';
+const html=await readFile('dist/index.html','utf8');
+const app=await readFile('dist/app.js','utf8');
+const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);
+assert.equal(new Set(ids).size,ids.length,'Duplicate element IDs');
+const refs=[...html.matchAll(/(?:src|href)="([^"#]+)"/g)].map(m=>m[1]).filter(x=>!x.startsWith('http'));
+for(const ref of new Set(refs))await access(`dist/${ref}`);
+for(const file of ['dist/app.js','dist/commerce.js','server.mjs'])execFileSync(process.execPath,['--check',file]);
+for(const id of ['inicio','colecao','sobre','studio-view','design-form','design-canvas','product-dialog','cart-dialog','checkout-dialog'])assert(ids.includes(id),`Missing route/control: ${id}`);
+assert(app.includes('e.preventDefault()'),'Checkout must not submit personal data to a server');
+const css=await readFile('dist/styles.css','utf8');
+assert(css.includes('prefers-reduced-motion'),'Reduced-motion support required');
+const manifest=JSON.parse(await readFile('.openai/hosting.json','utf8'));
+assert.equal(manifest.static.directory,'dist');assert(manifest.project_id);
+console.log(`Validated static entrypoint, ${new Set(refs).size} local references, ${ids.length} unique IDs, script syntax, route controls and hosting manifest.`);
