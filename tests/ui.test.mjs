@@ -108,3 +108,39 @@ test('with the API online the catalog comes from the server and checkout submits
  assert(s.doc.querySelector('#lookup-result').textContent.includes('Em produção'));
  }finally{s.close();}
 });
+test('accounts: signup asks for confirmation, login updates header, account lists orders, checkout prefills, logout clears',async()=>{
+ const calls=[];
+ const fetchStub=async(url,init={})=>{
+  calls.push({url:String(url),init});
+  const json=(body,status=200)=>({ok:status<400,status,json:async()=>body});
+  if(url.includes('/rest/v1/products'))return json([]);
+  if(url.includes('/auth/v1/signup'))return json({id:'u1',email:'nova@example.com',user_metadata:{name:'Nova'}});
+  if(url.includes('/auth/v1/token?grant_type=password')){const body=JSON.parse(init.body);if(body.password!=='senha1234')return json({error_code:'invalid_credentials',msg:'Invalid login credentials'},400);return json({access_token:'tok',refresh_token:'ref',expires_in:3600,user:{id:'u1',email:'nova@example.com',user_metadata:{name:'Nova Cliente'},app_metadata:{provider:'email'}}});}
+  if(url.includes('/rest/v1/profiles'))return init.method==='PATCH'?json(null,204):json([{name:'Nova Cliente',cep:'60000-000',city:'Fortaleza',address:'Rua Um, 10'}]);
+  if(url.includes('/rest/v1/orders'))return json([{code:'AV-DB-1',status:'em_producao',created_at:'2026-09-11T00:00:00Z',total_cents:12480,payment:'Pix',shipping:'standard',order_items:[{name:'Essencial Preta',base:'black',size:'M',qty:1,unit_price_cents:8990}]}]);
+  if(url.includes('/auth/v1/logout'))return json(null,204);
+  return json({message:'nope'},404);
+ };
+ const s=await setup({},fetchStub);try{
+ await new Promise(r=>setTimeout(r,20));
+ assert.equal(s.doc.querySelector('#open-auth').hidden,false);assert.equal(s.doc.querySelector('#open-account').hidden,true);
+ s.click('#open-auth');assert(s.doc.querySelector('#auth-dialog').open);s.click('[data-auth-tab="signup"]');
+ const signup=s.doc.querySelector('#signup-form');signup.elements.namedItem('name').value='Nova';signup.elements.namedItem('email').value='nova@example.com';signup.elements.namedItem('password').value='senha1234';
+ signup.dispatchEvent(new s.w.Event('submit',{bubbles:true,cancelable:true}));await new Promise(r=>setTimeout(r,20));
+ assert(s.doc.querySelector('#auth-status').textContent.includes('confirma'));assert.equal(s.w.localStorage.getItem('avesso.session.v1'),null);
+ s.click('[data-auth-tab="login"]');const login=s.doc.querySelector('#login-form');login.elements.namedItem('email').value='nova@example.com';login.elements.namedItem('password').value='errada123';
+ login.dispatchEvent(new s.w.Event('submit',{bubbles:true,cancelable:true}));await new Promise(r=>setTimeout(r,20));
+ assert(s.doc.querySelector('#auth-status').textContent.includes('incorretos'));
+ login.elements.namedItem('password').value='senha1234';login.dispatchEvent(new s.w.Event('submit',{bubbles:true,cancelable:true}));await new Promise(r=>setTimeout(r,20));
+ assert.equal(s.doc.querySelector('#auth-dialog').open,false);assert.equal(s.doc.querySelector('#open-account').hidden,false);assert(s.doc.querySelector('#open-account').textContent.includes('Nova'));
+ assert(JSON.parse(s.w.localStorage.getItem('avesso.session.v1')).access_token==='tok');
+ s.click('#open-account');await new Promise(r=>setTimeout(r,30));
+ const account=s.doc.querySelector('#account-content').textContent;assert(account.includes('AV-DB-1'));assert(account.includes('Em produção'));assert.equal(s.doc.querySelector('#profile-form input[name=city]').value,'Fortaleza');
+ s.doc.querySelector('#account-dialog').close();
+ s.click('[data-product="off-line"]');s.click('[data-size="M"]');s.click('#add-product');s.click('#begin-checkout');await new Promise(r=>setTimeout(r,20));
+ const form=s.doc.querySelector('#checkout-form');assert.equal(form.elements.namedItem('email').value,'nova@example.com');assert(form.elements.namedItem('email').readOnly);assert.equal(form.elements.namedItem('address').value,'Rua Um, 10');
+ const authed=calls.find(c=>c.url.includes('/rest/v1/orders'));assert.equal(authed.init.headers.Authorization,'Bearer tok');
+ s.doc.querySelector('#checkout-dialog').close();s.click('#open-account');await new Promise(r=>setTimeout(r,30));s.click('#sign-out');await new Promise(r=>setTimeout(r,20));
+ assert.equal(s.doc.querySelector('#open-auth').hidden,false);assert.equal(s.w.localStorage.getItem('avesso.session.v1'),null);
+ }finally{s.close();}
+});

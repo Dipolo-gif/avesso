@@ -1,5 +1,5 @@
 import {PRODUCTS,SIZES,CUSTOM,FREE_SHIPPING_MIN,INSTALLMENTS,installment,customMode,shippingSuggestion,setProducts,money,escapeHTML as esc,totals,addItem,changeQuantity,normalizeCart,validImageURL} from './commerce.js';
-import {online,fetchProducts,rpc,uploadDesign,dataURLToBlob} from './api.js';
+import {online,fetchProducts,rpc,uploadDesign,dataURLToBlob,getUser,signIn,signUp,signOut,resetPassword,updatePassword,signInWithGoogle,handleAuthRedirect,fetchProfile,updateProfile,fetchMyOrders} from './api.js';
 const $=(selector,root=document)=>root.querySelector(selector);
 const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 let filter='all';
@@ -89,6 +89,8 @@ function showCheckout(){
  const live=online();
  $('#checkout-content').innerHTML=`<div class="demo-note">${live?'Pagamento ainda não integrado: o pedido é registrado como “aguardando pagamento” e nenhum valor é cobrado agora.':'Este é um pedido de demonstração: não há cobrança nem envio de produtos. Use dados fictícios.'}</div><form id="checkout-form"><div class="checkout-columns"><div class="checkout-fields"><div style="display:flex;justify-content:space-between;gap:15px;align-items:center"><h3>Dados para entrega</h3>${live?'':'<button type="button" class="text-button" id="fill-demo">Preencher exemplo</button>'}</div><label>Nome<input name="name" autocomplete="name" required minlength="3" maxlength="80" placeholder="Seu nome"></label><label>E-mail<input name="email" type="email" autocomplete="email" required maxlength="120" placeholder="voce@exemplo.com"></label><div class="field-row" style="margin:0"><label>CEP<input name="cep" inputmode="numeric" autocomplete="postal-code" required pattern="[0-9]{5}-?[0-9]{3}" maxlength="9" placeholder="00000-000" title="Informe 8 dígitos, com ou sem hífen"></label><label>Cidade<input name="city" autocomplete="address-level2" required minlength="2" maxlength="80" placeholder="Sua cidade"></label></div><label>Endereço e número<input name="address" autocomplete="street-address" required minlength="5" maxlength="160" placeholder="Rua Exemplo, 123"></label><fieldset><legend>Entrega</legend><label class="radio-option"><input type="radio" name="shipping" value="standard" checked> Padrão · 5 a 8 dias úteis</label><label class="radio-option"><input type="radio" name="shipping" value="express"> Expressa · 2 a 3 dias úteis · R$ 24,90</label></fieldset><fieldset><legend>Pagamento</legend><label class="radio-option"><input type="radio" name="payment" value="Pix" checked> Pix</label><label class="radio-option"><input type="radio" name="payment" value="Cartão"> Cartão</label><p class="helper">${live?'Nenhum dado bancário é pedido aqui. A cobrança ainda não está ativa.':'Nenhum dado bancário é necessário. A aprovação é simulada.'}</p></fieldset></div><aside class="checkout-summary" id="checkout-summary" aria-live="polite"></aside></div><button type="submit" class="button button-blue checkout-submit">${live?'Confirmar pedido':'Confirmar pedido demonstrativo'} <span>→</span></button><p class="helper">${live?'Seus dados de entrega ficam guardados com segurança, só para este pedido. O histórico de itens fica também neste navegador.':'Nome, e-mail e endereço não são armazenados. O histórico de itens fica apenas neste navegador.'}</p></form>`;
  const form=$('#checkout-form');
+ const user=getUser();
+ if(user){const email=form.elements.namedItem('email');email.value=user.email;email.readOnly=true;loadProfile().then(p=>{for(const k of ['name','cep','city','address']){const input=form.elements.namedItem(k);if(p?.[k]&&!input.value)input.value=p[k];}if(!form.elements.namedItem('name').value&&user.name)form.elements.namedItem('name').value=user.name;});}
  const summary=()=>{const t=totals(cart,new FormData(form).get('shipping'));$('#checkout-summary').innerHTML=`<h3>Resumo · ${t.count} ${t.count===1?'peça':'peças'}</h3>${cart.map(i=>`<div class="summary-row"><span>${esc(i.name)} · ${esc(i.size)} × ${i.qty}</span><span>${money(i.price*i.qty)}</span></div>`).join('')}<div class="summary-row"><span>Subtotal</span><span>${money(t.subtotal)}</span></div><div class="summary-row"><span>Entrega</span><span>${t.delivery?money(t.delivery):'Grátis'}</span></div><div class="summary-row summary-total"><span>Total</span><span>${money(t.total)}</span></div>`;};
  form.addEventListener('change',summary);summary();
  $('#fill-demo')?.addEventListener('click',()=>{for(const [key,value] of Object.entries({name:'Cliente de Exemplo',email:'cliente@example.com',cep:'60000-000',city:'Fortaleza',address:'Rua de Exemplo, 123'}))form.elements.namedItem(key).value=value;});
@@ -104,7 +106,7 @@ function showCheckout(){
   const order={id:result.code,status:result.status,date:new Date().toISOString(),payment,shipping,subtotal:result.subtotal_cents,delivery:result.delivery_cents,total:result.total_cents,count:result.count,items:cart.map(({id,name,color,size,qty,price,preview,design})=>({id,name,color,size,qty,price,...(preview?{preview,design}:{})}))};
   orders=[order,...orders].slice(0,12);
   try{localStorage.setItem(ORDERS_KEY,JSON.stringify(orders));}catch{toast('Pedido confirmado nesta sessão. O histórico não pôde ser salvo no navegador.');}
-  cart=[];saveCart();
+  cart=[];saveCart();profile=null;
   $('#checkout-content').innerHTML=`<div class="success"><span class="success-mark">✓</span><p class="eyebrow">${live?'PEDIDO REGISTRADO':'SIMULAÇÃO CONCLUÍDA'}</p><h3>Seu pedido ganhou forma.</h3><p>Pedido <span class="order-id">${esc(order.id)}</span><br>${money(order.total)} · ${esc(payment)}${live?'':' simulado'}</p><div class="demo-note">${live?'Guarde o código do pedido. Nenhum valor foi cobrado: o pagamento ainda não está integrado e o pedido fica como “aguardando pagamento”.':'Nenhuma cobrança foi feita. Este pedido não será produzido nem enviado.'}</div><button class="button button-blue" id="finish-order">Voltar à coleção <span>↗</span></button><p class="helper" style="margin-top:20px">O resumo está em “Meus pedidos”, no rodapé.</p></div>`;
   $('#finish-order').addEventListener('click',()=>{closeDialog($('#checkout-dialog'));location.hash='colecao';});
  });
@@ -129,6 +131,7 @@ function ordersHTML(){
  return list+lookup;
 }
 $('#view-orders').addEventListener('click',()=>{
+ if(getUser()){showAccount();return;}
  showInfo('Meus pedidos',ordersHTML());
  $('#order-lookup')?.addEventListener('submit',async e=>{
   e.preventDefault();const form=e.target,out=$('#lookup-result');if(!form.reportValidity())return;
@@ -232,6 +235,78 @@ window.addEventListener('hashchange',route);
 $('#product-dialog').addEventListener('close',()=>{if(location.hash.startsWith('#produto-'))history.replaceState(null,'','#colecao');});
 window.addEventListener('storage',e=>{if(e.key===CART_KEY){cart=normalizeCart(readStored(CART_KEY,[]));updateCartCount();if($('#cart-dialog').open)renderCart();if($('#checkout-dialog').open){closeDialog($('#checkout-dialog'));toast('A sacola mudou em outra aba. Confira os itens antes de finalizar.');}}});
 updateCartCount();route();
+
+// Contas ------------------------------------------------------------------------
+let profile=null;
+const firstName=user=>(user?.name||user?.email||'').split(/[\s@]/)[0];
+function renderAuthState(){
+ const user=getUser();
+ $('#open-auth').hidden=!!user;$('#open-account').hidden=!user;
+ if(user)$('#open-account').textContent=`Olá, ${firstName(user)}`;
+ $('#mobile-account').textContent=user?'Minha conta':'Entrar';
+}
+window.addEventListener('avesso:auth',()=>{profile=null;renderAuthState();});
+function setAuthStatus(message,kind=''){const el=$('#auth-status');el.textContent=message;el.className=`auth-status ${kind}`;}
+function showAuthTab(tab){
+ $$('[data-auth-tab]').forEach(b=>{const on=b.dataset.authTab===tab;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on));});
+ $('#login-form').hidden=tab!=='login';$('#signup-form').hidden=tab!=='signup';$('#password-form').hidden=tab!=='password';
+ $('.auth-tabs').hidden=tab==='password';$('#google-signin').hidden=tab==='password';$('.auth-divider').hidden=tab==='password';
+ $('#auth-title').textContent=tab==='signup'?'Criar conta':tab==='password'?'Nova senha':'Entrar';
+ setAuthStatus('');
+}
+function openAuth(tab='login'){if(!online()){toast('Contas indisponíveis no modo offline.');return;}showAuthTab(tab);openDialog('#auth-dialog');setTimeout(()=>$(`#${tab}-form input`)?.focus(),50);}
+$('#open-auth').addEventListener('click',()=>openAuth('login'));
+$('#mobile-account').addEventListener('click',()=>{$('#mobile-menu').hidden=true;getUser()?showAccount():openAuth('login');});
+$$('[data-auth-tab]').forEach(b=>b.addEventListener('click',()=>showAuthTab(b.dataset.authTab)));
+async function busy(form,work){
+ const button=$('button[type=submit]',form);button.disabled=true;
+ try{await work();}catch(error){setAuthStatus(error.message,'error');}finally{button.disabled=false;}
+}
+$('#login-form').addEventListener('submit',e=>{
+ e.preventDefault();const form=e.target;if(!form.reportValidity())return;
+ busy(form,async()=>{const user=await signIn(form.elements.namedItem('email').value.trim(),form.elements.namedItem('password').value);form.reset();closeDialog($('#auth-dialog'));toast(`Bem-vindo de volta, ${firstName(user)}.`);});
+});
+$('#signup-form').addEventListener('submit',e=>{
+ e.preventDefault();const form=e.target;if(!form.reportValidity())return;
+ busy(form,async()=>{const result=await signUp(form.elements.namedItem('email').value.trim(),form.elements.namedItem('password').value,form.elements.namedItem('name').value.trim());form.reset();if(result.confirmed){closeDialog($('#auth-dialog'));toast('Conta criada. Bem-vindo à Avesso.');}else setAuthStatus('Conta criada! Enviamos um e-mail de confirmação — abra o link para ativar e depois entre aqui.','ok');});
+});
+$('#forgot-password').addEventListener('click',async()=>{
+ const email=$('#login-form input[name=email]').value.trim();
+ if(!email){setAuthStatus('Digite seu e-mail acima e clique de novo em “Esqueci minha senha”.','error');$('#login-form input[name=email]').focus();return;}
+ try{await resetPassword(email);setAuthStatus('Se existir conta com este e-mail, você recebe um link para criar uma nova senha.','ok');}catch(error){setAuthStatus(error.message,'error');}
+});
+$('#password-form').addEventListener('submit',e=>{
+ e.preventDefault();const form=e.target;if(!form.reportValidity())return;
+ busy(form,async()=>{await updatePassword(form.elements.namedItem('password').value);form.reset();closeDialog($('#auth-dialog'));toast('Senha atualizada.');});
+});
+$('#google-signin').addEventListener('click',()=>{setAuthStatus('Redirecionando para o Google…');signInWithGoogle().catch(error=>setAuthStatus(error.message,'error'));});
+
+const ORDER_STATUS={aguardando_pagamento:'Aguardando pagamento',pago:'Pagamento confirmado',em_producao:'Em produção',enviado:'Enviado',entregue:'Entregue',cancelado:'Cancelado'};
+async function loadProfile(){if(profile||!getUser())return profile;try{profile=await fetchProfile();}catch{profile=null;}return profile;}
+async function showAccount(){
+ const user=getUser();if(!user){openAuth('login');return;}
+ $('#account-content').innerHTML='<p class="helper">Carregando sua conta…</p>';openDialog('#account-dialog');
+ let orders=[],p=null;
+ try{[orders,p]=await Promise.all([fetchMyOrders(),loadProfile()]);}catch(error){$('#account-content').innerHTML=`<p class="helper">${esc(error.message)}</p>`;return;}
+ const list=orders.length?orders.map(o=>orderRecordHTML(o.code,o.total_cents,`${esc(ORDER_STATUS[o.status]||o.status)} · ${esc(new Date(o.created_at).toLocaleDateString('pt-BR'))} · ${esc(o.payment)}`,(o.order_items||[]).map(i=>`<li>${esc(i.name)} · ${i.base==='white'?'Branco giz':'Preto lavado'} · ${esc(i.size)} × ${esc(i.qty)}</li>`).join(''))).join(''):'<div class="empty-state"><h3>Nenhum pedido ainda.</h3><p>Quando você comprar logado, seus pedidos aparecem aqui com o status atualizado.</p></div>';
+ $('#account-content').innerHTML=`<div class="account-header"><div><strong>${esc(user.name||firstName(user))}</strong><p>${esc(user.email)}${user.provider==='google'?' · Google':''}</p></div><button class="text-button" id="sign-out">Sair</button></div><h3>Meus pedidos</h3>${list}<form id="profile-form" class="profile-form"><h3>Dados de entrega</h3><p class="helper">Preenchem o checkout automaticamente.</p><label>Nome<input name="name" maxlength="80" value="${esc(p?.name||'')}" autocomplete="name"></label><div class="field-row"><label>CEP<input name="cep" inputmode="numeric" pattern="([0-9]{5}-?[0-9]{3})?" maxlength="9" value="${esc(p?.cep||'')}" autocomplete="postal-code"></label><label>Cidade<input name="city" maxlength="80" value="${esc(p?.city||'')}" autocomplete="address-level2"></label></div><label>Endereço e número<input name="address" maxlength="160" value="${esc(p?.address||'')}" autocomplete="street-address"></label><button type="submit" class="button button-blue">Salvar dados <span>→</span></button>${user.provider==='google'?'':'<button type="button" class="text-button" id="change-password">Trocar senha</button>'}</form>`;
+ $('#sign-out').addEventListener('click',async()=>{await signOut();closeDialog($('#account-dialog'));toast('Você saiu da sua conta.');});
+ $('#change-password')?.addEventListener('click',()=>{closeDialog($('#account-dialog'));openAuth('password');});
+ $('#profile-form').addEventListener('submit',e=>{
+  e.preventDefault();const form=e.target;if(!form.reportValidity())return;
+  busyToast(form,async()=>{const data=Object.fromEntries(['name','cep','city','address'].map(k=>[k,form.elements.namedItem(k).value.trim()]));await updateProfile(data);profile={...profile,...data};toast('Dados salvos.');});
+ });
+}
+async function busyToast(form,work){const button=$('button[type=submit]',form);button.disabled=true;try{await work();}catch(error){toast(error.message);}finally{button.disabled=false;}}
+$('#open-account').addEventListener('click',showAccount);
+
+handleAuthRedirect().then(outcome=>{
+ renderAuthState();
+ if(!outcome)return;
+ if(outcome.type==='recovery')openAuth('password');
+ else if(outcome.type==='signed_in')toast(`Bem-vindo, ${firstName(getUser())}.`);
+ else if(outcome.type==='error')toast(outcome.message);
+}).catch(()=>renderAuthState());
 
 // Optional imperative WebMCP surface. Uses the same cart actions as the interface.
 if(document.modelContext?.registerTool){

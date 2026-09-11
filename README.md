@@ -19,6 +19,7 @@ Projeto `avesso` (região São Paulo). O navegador usa a chave pública de `dist
 - `orders` e `order_items`: sem acesso direto; gravados só por `place_order()`, que recalcula preços e frete no servidor, valida tudo e limita 10 pedidos/hora por e-mail. Status inicial `aguardando_pagamento`.
 - `newsletter_subscribers`: só por `subscribe_newsletter()`.
 - `get_order(código, e-mail)`: consulta de status sem login.
+- Contas (Supabase Auth): e-mail + senha com confirmação obrigatória, senha mínima de 8 caracteres com letras e números, redefinição por e-mail, e botão “Continuar com Google” (PKCE) — ativo assim que o provedor for configurado no painel. `profiles` guarda nome e endereço de entrega (RLS: só o dono). Pedidos feitos logado recebem `user_id`; o cliente vê os próprios pedidos em “Minha conta” via RLS. Compra como visitante continua possível.
 - Storage `designs` (privado): prévia e arte de cada item do estúdio, em `uuid/preview.jpg` e `uuid/art.webp`.
 
 Pedidos e artes são vistos no painel do Supabase (Table Editor → `orders`/`order_items`; Storage → `designs`). Para aplicar as migrações em um projeto novo, execute os arquivos de `supabase/migrations/` em ordem no SQL Editor e faça o seed dos produtos.
@@ -31,7 +32,7 @@ Se a API estiver fora do ar ou a chave não estiver configurada, o site cai no m
 - `dist/styles.css`: identidade, responsividade, animações e redução de movimento.
 - `dist/app.js`: interações, editor canvas, checkout, histórico e consulta de pedidos.
 - `dist/commerce.js`: catálogo embutido (fallback), preços em centavos, totais, saneamento da sacola.
-- `dist/api.js`: acesso ao Supabase (catálogo, funções, upload de artes).
+- `dist/api.js`: acesso ao Supabase (catálogo, funções, upload de artes) e cliente de autenticação (sessão, login, cadastro, Google/PKCE, redefinição de senha) sem biblioteca externa.
 - `dist/assets/`: versões WebP responsivas (com JPEG de fallback) das três fotografias, geradas por `scripts/optimize-images.mjs`.
 - `assets-src/`: originais em PNG, fora do site publicado.
 - `supabase/migrations/`: esquema, RLS, funções e políticas do Storage.
