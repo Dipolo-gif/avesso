@@ -1,6 +1,6 @@
 # Direção e imagens
 
-AVESSO: marca provisória de camisetas independentes. Fotografia editorial de concreto e algodão, tipografia Barlow Condensed para campanha e Manrope para interface. Paleta: azul #1737bc, tinta #161719, papel frio #f7f8f9, cinza #e9eaec e texto secundário #64666e. A página combina campanha fotográfica com catálogo acessível logo abaixo, cartões sem molduras e estúdio com prévia grande. Movimento: entrada suave da campanha, faixa tipográfica contínua, aproximação das peças no hover e abertura lateral da sacola. `prefers-reduced-motion` desliga movimento.
+DOAVESSO: marca provisória de camisetas independentes. Fotografia editorial de concreto e algodão, tipografia Barlow Condensed para campanha e Manrope para interface. Paleta: azul #1737bc, tinta #161719, papel frio #f7f8f9, cinza #e9eaec e texto secundário #64666e. A página combina campanha fotográfica com catálogo acessível logo abaixo, cartões sem molduras e estúdio com prévia grande. Movimento: entrada suave da campanha, faixa tipográfica contínua, aproximação das peças no hover e abertura lateral da sacola. `prefers-reduced-motion` desliga movimento.
 
 Imagens geradas usando a ferramenta integrada image_gen. Originais em `assets-src/`:
 
@@ -13,7 +13,7 @@ Imagens geradas usando a ferramenta integrada image_gen. Originais em `assets-sr
 ## Prompt editorial
 
 Use case: photorealistic-natural
-Asset type: streetwear e-commerce editorial hero photograph for AVESSO, 1536x1024 landscape.
+Asset type: streetwear e-commerce editorial hero photograph for DOAVESSO, 1536x1024 landscape.
 Scene/backdrop: modern raw concrete courtyard with a subtle stainless steel architectural detail, Mediterranean late afternoon daylight.
 Subject: an adult woman in an oversized mineral cobalt blue blank heavyweight cotton tee and washed jeans, alongside an adult man in a washed charcoal blank tee.
 Style: authentic candid analogue fashion photography, natural skin and tactile cotton, restrained film grain, effortless real moment.

@@ -16,4 +16,4 @@ http.createServer(async(req,res)=>{
   res.writeHead(200,{...headers,'Content-Type':mime[path.extname(file)]||'application/octet-stream','Content-Length':content.length});
   res.end(req.method==='HEAD'?undefined:content);
  }catch{res.writeHead(404,{...headers,'Content-Type':'text/plain; charset=utf-8'});res.end('Arquivo não encontrado');}
-}).listen(5174,'127.0.0.1',()=>console.log('AVESSO preview: http://127.0.0.1:5174'));
+}).listen(5174,'127.0.0.1',()=>console.log('DOAVESSO preview: http://127.0.0.1:5174'));

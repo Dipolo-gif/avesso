@@ -1,7 +1,7 @@
 // Chave pública (publishable): feita para o navegador; o acesso é limitado pelo RLS no banco.
 export const SUPABASE_URL='https://bkyzkighkuswsssvicpy.supabase.co';
 export const SUPABASE_KEY='sb_publishable_9rzjsC4wmHSmBxlKZfIwJg_SlDprprm';
-const SESSION_KEY='avesso.session.v1',PKCE_KEY='avesso.pkce.v1';
+const SESSION_KEY='doavesso.session.v1',PKCE_KEY='doavesso.pkce.v1';
 const USER_ERRORS=new Set(['22023','53400']);
 export const online=()=>typeof fetch==='function'&&SUPABASE_URL.startsWith('https://');
 const siteURL=()=>location.origin+location.pathname;
@@ -14,7 +14,7 @@ export const getUser=()=>session?.user||null;
 function setSession(next){
  session=next&&next.access_token?{access_token:next.access_token,refresh_token:next.refresh_token,expires_at:next.expires_at||Math.floor(Date.now()/1000)+(next.expires_in||3600),user:userView(next.user)}:null;
  try{if(session)localStorage.setItem(SESSION_KEY,JSON.stringify(session));else localStorage.removeItem(SESSION_KEY);}catch{}
- window.dispatchEvent(new CustomEvent('avesso:auth',{detail:session?.user||null}));
+ window.dispatchEvent(new CustomEvent('doavesso:auth',{detail:session?.user||null}));
 }
 function userView(u){if(!u)return null;const m=u.user_metadata||{};return {id:u.id,email:u.email,name:m.name||m.full_name||'',provider:u.app_metadata?.provider||'email'};}
 async function refreshIfNeeded(){
@@ -31,7 +31,7 @@ export async function authHeaders(){
 // Erros ---------------------------------------------------------------------------
 const AUTH_MESSAGES=[
  [/invalid login credentials|invalid_credentials/i,'E-mail ou senha incorretos.'],
- [/email not confirmed|email_not_confirmed/i,'Confirme seu e-mail antes de entrar. Procure a mensagem da Avesso na caixa de entrada.'],
+ [/email not confirmed|email_not_confirmed/i,'Confirme seu e-mail antes de entrar. Procure a mensagem da doavesso na caixa de entrada.'],
  [/already registered|user_already_exists|already been registered/i,'Já existe uma conta com este e-mail. Tente entrar.'],
  [/password should|weak_password|at least/i,'A senha precisa ter pelo menos 8 caracteres, com letras e números.'],
  [/rate limit|too many|over_/i,'Muitas tentativas em pouco tempo. Aguarde alguns minutos.'],

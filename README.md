@@ -1,8 +1,8 @@
-# AVESSO — loja de camisetas
+# DOAVESSO — loja de camisetas
 
 Loja em português com catálogo, filtro, busca, ordenação, tamanhos, sacola, checkout, histórico de pedidos e estúdio de estampas (criar na hora ou descrever a ideia). Site estático publicado no GitHub Pages; catálogo, pedidos, artes e newsletter no Supabase.
 
-- Site: https://dipolo-gif.github.io/avesso/
+- Site: https://dipolo-gif.github.io/doavesso/
 - Publicação: a cada push na `main`, o workflow roda `npm audit`, `npm test` e `npm run validate` e publica `dist/`.
 
 ## Executar
@@ -13,7 +13,7 @@ Node.js 22 ou mais recente. `npm start` abre o servidor local em http://127.0.0.
 
 ## Backend (Supabase)
 
-Projeto `avesso` (região São Paulo). O navegador usa a chave pública de `dist/api.js`; o que ela pode fazer é definido pelas migrações em `supabase/migrations/`:
+Projeto `doavesso` (região São Paulo). O navegador usa a chave pública de `dist/api.js`; o que ela pode fazer é definido pelas migrações em `supabase/migrations/`:
 
 - `products` e `store_settings`: leitura pública (catálogo, frete, preços do estúdio).
 - `orders` e `order_items`: sem acesso direto; gravados só por `place_order()`, que recalcula preços e frete no servidor, valida tudo e limita 10 pedidos/hora por e-mail. Status inicial `aguardando_pagamento`.

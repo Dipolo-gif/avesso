@@ -18,7 +18,7 @@ function renderCatalog(){
 renderCatalog();
 if(online())fetchProducts().then(list=>{if(list.length){setProducts(list);renderCatalog();cart=normalizeCart(cart);updateCartCount();}}).catch(()=>{});
 
-const CART_KEY='avesso.cart.v1',ORDERS_KEY='avesso.orders.v1';
+const CART_KEY='doavesso.cart.v1',ORDERS_KEY='doavesso.orders.v1';
 function readStored(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}}
 let cart=normalizeCart(readStored(CART_KEY,[]));
 let orders=readStored(ORDERS_KEY,[]);
@@ -44,7 +44,7 @@ $('.search-toggle').addEventListener('click',()=>{$('.search-row').hidden=false;
 
 function showProduct(id){
  const p=PRODUCTS.find(p=>p.id===id);if(!p)return;
- $('#product-detail').innerHTML=`<div class="detail-layout"><div class="detail-visual"><div class="product-visual">${teePicture(p.base,p.name,'(max-width:700px) 94vw, 450px')}${graphicHTML(p)}</div></div><div class="detail-copy"><span class="eyebrow">AVESSO / ${p.category==='graphic'?'ESTAMPADAS':'ESSENCIAIS'}</span><h2>${p.name}</h2><div class="price">${money(p.price)}</div><p class="installments">ou ${INSTALLMENTS}x de ${money(installment(p.price))} sem juros</p><p>${p.description}</p><p><i class="color-dot" style="background:${p.base==='black'?'#28292b':'#fafafa'}"></i> ${p.color}</p><span style="font-size:14px">Escolha seu tamanho</span><div class="size-options" role="group" aria-label="Tamanho da camiseta">${SIZES.map(s=>`<button data-size="${s}" aria-pressed="false">${s}</button>`).join('')}</div><button class="text-link size-guide-button">Guia de medidas ↗</button><button class="button button-blue" id="add-product" disabled>Selecione um tamanho <span>＋</span></button><ul class="trust-row"><li>Frete grátis a partir de ${money(FREE_SHIPPING_MIN)}</li><li>Troca fácil em 30 dias</li><li>Pix ou cartão em até ${INSTALLMENTS}x</li></ul><dl class="specs"><div><dt>Tecido</dt><dd>${p.fabric}</dd></div><div><dt>Acabamento</dt><dd>${p.finish}</dd></div>${p.print?`<div><dt>Estampa</dt><dd>${p.print}</dd></div>`:''}<div><dt>Caimento</dt><dd>${p.fit}</dd></div><div><dt>Cuidados</dt><dd>${p.care}</dd></div></dl><p class="helper">Imagem, preço e características para demonstração.</p></div></div>`;
+ $('#product-detail').innerHTML=`<div class="detail-layout"><div class="detail-visual"><div class="product-visual">${teePicture(p.base,p.name,'(max-width:700px) 94vw, 450px')}${graphicHTML(p)}</div></div><div class="detail-copy"><span class="eyebrow">DOAVESSO / ${p.category==='graphic'?'ESTAMPADAS':'ESSENCIAIS'}</span><h2>${p.name}</h2><div class="price">${money(p.price)}</div><p class="installments">ou ${INSTALLMENTS}x de ${money(installment(p.price))} sem juros</p><p>${p.description}</p><p><i class="color-dot" style="background:${p.base==='black'?'#28292b':'#fafafa'}"></i> ${p.color}</p><span style="font-size:14px">Escolha seu tamanho</span><div class="size-options" role="group" aria-label="Tamanho da camiseta">${SIZES.map(s=>`<button data-size="${s}" aria-pressed="false">${s}</button>`).join('')}</div><button class="text-link size-guide-button">Guia de medidas ↗</button><button class="button button-blue" id="add-product" disabled>Selecione um tamanho <span>＋</span></button><ul class="trust-row"><li>Frete grátis a partir de ${money(FREE_SHIPPING_MIN)}</li><li>Troca fácil em 30 dias</li><li>Pix ou cartão em até ${INSTALLMENTS}x</li></ul><dl class="specs"><div><dt>Tecido</dt><dd>${p.fabric}</dd></div><div><dt>Acabamento</dt><dd>${p.finish}</dd></div>${p.print?`<div><dt>Estampa</dt><dd>${p.print}</dd></div>`:''}<div><dt>Caimento</dt><dd>${p.fit}</dd></div><div><dt>Cuidados</dt><dd>${p.care}</dd></div></dl><p class="helper">Imagem, preço e características para demonstração.</p></div></div>`;
  let selected='';
  $$('[data-size]',$('#product-detail')).forEach(b=>b.addEventListener('click',()=>{selected=b.dataset.size;$$('[data-size]',$('#product-detail')).forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#add-product').disabled=false;$('#add-product').innerHTML='Adicionar à sacola <span>＋</span>';}));
  $('#add-product').addEventListener('click',()=>{if(addCatalogItem(p.id,selected)){closeDialog($('#product-dialog'));showCart();}});
@@ -211,7 +211,7 @@ $('#design-upload').addEventListener('change',async e=>{
  try{const original=await loadImage(url);if(original.width*original.height>40000000)throw new Error('Imagem muito grande. Use uma versão com até 40 megapixels.');const temp=document.createElement('canvas');const ratio=Math.min(1,700/Math.max(original.width,original.height));temp.width=Math.round(original.width*ratio);temp.height=Math.round(original.height*ratio);temp.getContext('2d').drawImage(original,0,0,temp.width,temp.height);const data=temp.toDataURL('image/webp',.85),image=await loadImage(data);if(generation!==uploadGeneration)return;uploadData=data;uploadImage=image;$('#remove-upload').hidden=false;$('#upload-status').textContent=`${file.name} · imagem pronta`;renderDesign();}catch(error){if(generation===uploadGeneration){$('#upload-status').textContent=error.message||'Não foi possível ler esse arquivo. Escolha outra imagem.';e.target.value='';}}finally{URL.revokeObjectURL(url);}
 });
 $('#reset-design').addEventListener('click',()=>{for(const [key,value] of Object.entries(designDefaults))$(`#design-${key}`).value=value;$('#brief-count').textContent='0';syncSwatches();clearUpload();setMode('create');toast('Estúdio pronto para uma nova ideia.');});
-$('#download-design').addEventListener('click',async()=>{await readyDesign;if(!designReady)return;renderDesign();canvas.toBlob(blob=>{if(!blob){toast('Não foi possível gerar a prévia. Tente novamente.');return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='avesso-minha-camiseta.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},'image/png');});
+$('#download-design').addEventListener('click',async()=>{await readyDesign;if(!designReady)return;renderDesign();canvas.toBlob(blob=>{if(!blob){toast('Não foi possível gerar a prévia. Tente novamente.');return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='doavesso-minha-camiseta.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},'image/png');});
 $('#design-form').addEventListener('submit',async e=>{
  e.preventDefault();await readyDesign;if(!designReady)return;
  const d=getDesign();
@@ -226,7 +226,7 @@ $('#design-form').addEventListener('submit',async e=>{
 function route(){
  const hash=location.hash||'#inicio',studio=hash==='#estudio';
  $('#shop-view').hidden=studio;$('#studio-view').hidden=!studio;document.documentElement.classList.toggle('studio',studio);
- document.title=studio?'AVESSO Studio — Crie sua camiseta':'AVESSO — Vista do seu jeito.';
+ document.title=studio?'DOAVESSO Studio — Crie sua camiseta':'DOAVESSO — Vista do seu jeito.';
  if(hash.startsWith('#produto-'))showProduct(hash.slice(9));
  if(studio){window.scrollTo({top:0,behavior:'instant'});renderDesign();}
  else if(['#inicio','#colecao','#sobre'].includes(hash))requestAnimationFrame(()=>$(hash).scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
@@ -245,7 +245,7 @@ function renderAuthState(){
  if(user)$('#open-account').textContent=`Olá, ${firstName(user)}`;
  $('#mobile-account').textContent=user?'Minha conta':'Entrar';
 }
-window.addEventListener('avesso:auth',()=>{profile=null;renderAuthState();});
+window.addEventListener('doavesso:auth',()=>{profile=null;renderAuthState();});
 function setAuthStatus(message,kind=''){const el=$('#auth-status');el.textContent=message;el.className=`auth-status ${kind}`;}
 function showAuthTab(tab){
  $$('[data-auth-tab]').forEach(b=>{const on=b.dataset.authTab===tab;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on));});
@@ -268,7 +268,7 @@ $('#login-form').addEventListener('submit',e=>{
 });
 $('#signup-form').addEventListener('submit',e=>{
  e.preventDefault();const form=e.target;if(!form.reportValidity())return;
- busy(form,async()=>{const result=await signUp(form.elements.namedItem('email').value.trim(),form.elements.namedItem('password').value,form.elements.namedItem('name').value.trim());form.reset();if(result.confirmed){closeDialog($('#auth-dialog'));toast('Conta criada. Bem-vindo à Avesso.');}else setAuthStatus('Conta criada! Enviamos um e-mail de confirmação — abra o link para ativar e depois entre aqui.','ok');});
+ busy(form,async()=>{const result=await signUp(form.elements.namedItem('email').value.trim(),form.elements.namedItem('password').value,form.elements.namedItem('name').value.trim());form.reset();if(result.confirmed){closeDialog($('#auth-dialog'));toast('Conta criada. Bem-vindo à doavesso.');}else setAuthStatus('Conta criada! Enviamos um e-mail de confirmação — abra o link para ativar e depois entre aqui.','ok');});
 });
 $('#forgot-password').addEventListener('click',async()=>{
  const email=$('#login-form input[name=email]').value.trim();
@@ -312,7 +312,7 @@ handleAuthRedirect().then(outcome=>{
 if(document.modelContext?.registerTool){
  const lifecycle=new AbortController();
  const register=tool=>{try{Promise.resolve(document.modelContext.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch{}};
- register({name:'read_avesso_catalog_and_cart',title:'Ver catálogo e sacola',description:'Consulta produtos, tamanhos e sacola atual.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute(input){if(!input||typeof input!=='object'||Object.keys(input).length)throw new Error('Informe um objeto vazio.');return {products:PRODUCTS.map(({id,name,price,color})=>({id,name,priceCents:price,color,sizes:SIZES})),cart:cart.map(({name,size,qty,price})=>({name,size,qty,priceCents:price})),totals:totals(cart)};}});
- register({name:'add_avesso_catalog_item_to_cart',title:'Adicionar camiseta à sacola',description:'Adiciona uma unidade de um produto do catálogo à sacola local; não finaliza a compra.',inputSchema:{type:'object',properties:{productId:{type:'string',enum:PRODUCTS.map(p=>p.id)},size:{type:'string',enum:SIZES}},required:['productId','size'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute(input){if(!input||typeof input!=='object'||Object.keys(input).some(k=>!['productId','size'].includes(k)))throw new Error('Parâmetros inválidos.');if(!addCatalogItem(input.productId,input.size))throw new Error('Item não adicionado. Verifique os limites da sacola.');showCart();return {added:true,...totals(cart)};}});
+ register({name:'read_doavesso_catalog_and_cart',title:'Ver catálogo e sacola',description:'Consulta produtos, tamanhos e sacola atual.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute(input){if(!input||typeof input!=='object'||Object.keys(input).length)throw new Error('Informe um objeto vazio.');return {products:PRODUCTS.map(({id,name,price,color})=>({id,name,priceCents:price,color,sizes:SIZES})),cart:cart.map(({name,size,qty,price})=>({name,size,qty,priceCents:price})),totals:totals(cart)};}});
+ register({name:'add_doavesso_catalog_item_to_cart',title:'Adicionar camiseta à sacola',description:'Adiciona uma unidade de um produto do catálogo à sacola local; não finaliza a compra.',inputSchema:{type:'object',properties:{productId:{type:'string',enum:PRODUCTS.map(p=>p.id)},size:{type:'string',enum:SIZES}},required:['productId','size'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute(input){if(!input||typeof input!=='object'||Object.keys(input).some(k=>!['productId','size'].includes(k)))throw new Error('Parâmetros inválidos.');if(!addCatalogItem(input.productId,input.size))throw new Error('Item não adicionado. Verifique os limites da sacola.');showCart();return {added:true,...totals(cart)};}});
  window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});
 }

@@ -1,4 +1,4 @@
--- AVESSO — esquema inicial.
+-- DOAVESSO — esquema inicial.
 -- Princípios: catálogo público somente leitura; pedidos, itens e newsletter sem acesso
 -- direto pela chave pública (RLS ativo, sem políticas) — apenas via funções SECURITY DEFINER
 -- que validam tudo e recalculam os preços no servidor.
