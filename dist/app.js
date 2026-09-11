@@ -1,14 +1,16 @@
-import {PRODUCTS,SIZES,money,escapeHTML as esc,totals,addItem,changeQuantity,normalizeCart,validImageURL} from './commerce.js';
+import {PRODUCTS,SIZES,CUSTOM,FREE_SHIPPING_MIN,INSTALLMENTS,installment,customMode,shippingSuggestion,money,escapeHTML as esc,totals,addItem,changeQuantity,normalizeCart,validImageURL} from './commerce.js';
 const $=(selector,root=document)=>root.querySelector(selector);
 const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 let filter='all';
 function graphicHTML(p){return p.graphic?`<span class="product-graphic ${p.graphicClass}">${esc(p.graphic)}</span>`:'';}
+const TEE_WIDTHS=[400,800,1254];
+function teePicture(base,alt,sizes,attrs=''){return `<picture><source type="image/webp" srcset="${TEE_WIDTHS.map(w=>`assets/tee-${base}-${w}.webp ${w}w`).join(', ')}" sizes="${sizes}"><img src="assets/tee-${base}-1254.jpg" alt="${alt}" width="1254" height="1254" decoding="async" ${attrs}></picture>`;}
 function renderCatalog(){
  const query=$('#search').value.trim().toLocaleLowerCase('pt-BR');
  let products=PRODUCTS.filter(p=>(filter==='all'||p.category===filter)&&`${p.name} ${p.color}`.toLocaleLowerCase('pt-BR').includes(query));
  if($('#sort').value==='price-low')products.sort((a,b)=>a.price-b.price);
  if($('#sort').value==='price-high')products.sort((a,b)=>b.price-a.price);
- $('#product-grid').innerHTML=products.map((p,i)=>`<article class="product-card" style="animation-delay:${i*60}ms"><button class="product-image-button" data-product="${p.id}" aria-label="Ver ${p.name}"><div class="product-visual"><img src="assets/tee-${p.base}.png" alt="${p.name}, ${p.color}" loading="lazy">${graphicHTML(p)}</div><span class="product-tag">${p.tag}</span><span class="product-add" aria-hidden="true">＋</span></button><div class="product-meta"><h3><a href="#produto-${p.id}">${p.name}</a></h3><span class="price">${money(p.price)}</span></div><div class="product-sub"><span><i class="color-dot" style="background:${p.base==='black'?'#28292b':'#fafafa'}"></i>${p.color}</span><span>P — GG</span></div></article>`).join('');
+ $('#product-grid').innerHTML=products.map((p,i)=>`<article class="product-card" style="animation-delay:${i*60}ms"><button class="product-image-button" data-product="${p.id}" aria-label="Ver ${p.name}"><div class="product-visual">${teePicture(p.base,`${p.name}, ${p.color}`,'(max-width:700px) 48vw, 24vw','loading="lazy"')}${graphicHTML(p)}</div><span class="product-tag">${p.tag}</span><span class="product-add" aria-hidden="true">＋</span></button><div class="product-meta"><h3><a href="#produto-${p.id}">${p.name}</a></h3><span class="price">${money(p.price)}</span></div><p class="installments">${INSTALLMENTS}x de ${money(installment(p.price))} sem juros</p><div class="product-sub"><span><i class="color-dot" style="background:${p.base==='black'?'#28292b':'#fafafa'}"></i>${p.color}</span><span>P — GG</span></div></article>`).join('');
  $('#product-count').textContent=`${products.length} ${products.length===1?'peça':'peças'} / coleção 01`;
  $('#empty-search').hidden=products.length>0;
 }
@@ -40,7 +42,7 @@ $('.search-toggle').addEventListener('click',()=>{$('.search-row').hidden=false;
 
 function showProduct(id){
  const p=PRODUCTS.find(p=>p.id===id);if(!p)return;
- $('#product-detail').innerHTML=`<div class="detail-layout"><div class="detail-visual"><div class="product-visual"><img src="assets/tee-${p.base}.png" alt="${p.name}">${graphicHTML(p)}</div></div><div class="detail-copy"><span class="eyebrow">AVESSO / ${p.category==='graphic'?'ESTAMPADAS':'ESSENCIAIS'}</span><h2>${p.name}</h2><div class="price">${money(p.price)}</div><p>${p.description}</p><p><i class="color-dot" style="background:${p.base==='black'?'#28292b':'#fafafa'}"></i> ${p.color}</p><span style="font-size:14px">Escolha seu tamanho</span><div class="size-options" role="group" aria-label="Tamanho da camiseta">${SIZES.map(s=>`<button data-size="${s}" aria-pressed="false">${s}</button>`).join('')}</div><button class="text-link size-guide-button">Guia de medidas ↗</button><button class="button button-blue" id="add-product" disabled>Selecione um tamanho <span>＋</span></button><div class="detail-specs">Modelagem oversized · Estampa frontal<br>Imagem, preço e características para demonstração.</div></div></div>`;
+ $('#product-detail').innerHTML=`<div class="detail-layout"><div class="detail-visual"><div class="product-visual">${teePicture(p.base,p.name,'(max-width:700px) 94vw, 450px')}${graphicHTML(p)}</div></div><div class="detail-copy"><span class="eyebrow">AVESSO / ${p.category==='graphic'?'ESTAMPADAS':'ESSENCIAIS'}</span><h2>${p.name}</h2><div class="price">${money(p.price)}</div><p class="installments">ou ${INSTALLMENTS}x de ${money(installment(p.price))} sem juros</p><p>${p.description}</p><p><i class="color-dot" style="background:${p.base==='black'?'#28292b':'#fafafa'}"></i> ${p.color}</p><span style="font-size:14px">Escolha seu tamanho</span><div class="size-options" role="group" aria-label="Tamanho da camiseta">${SIZES.map(s=>`<button data-size="${s}" aria-pressed="false">${s}</button>`).join('')}</div><button class="text-link size-guide-button">Guia de medidas ↗</button><button class="button button-blue" id="add-product" disabled>Selecione um tamanho <span>＋</span></button><ul class="trust-row"><li>Frete grátis a partir de ${money(FREE_SHIPPING_MIN)}</li><li>Troca fácil em 30 dias</li><li>Pix ou cartão em até ${INSTALLMENTS}x</li></ul><dl class="specs"><div><dt>Tecido</dt><dd>${p.fabric}</dd></div><div><dt>Acabamento</dt><dd>${p.finish}</dd></div>${p.print?`<div><dt>Estampa</dt><dd>${p.print}</dd></div>`:''}<div><dt>Caimento</dt><dd>${p.fit}</dd></div><div><dt>Cuidados</dt><dd>${p.care}</dd></div></dl><p class="helper">Imagem, preço e características para demonstração.</p></div></div>`;
  let selected='';
  $$('[data-size]',$('#product-detail')).forEach(b=>b.addEventListener('click',()=>{selected=b.dataset.size;$$('[data-size]',$('#product-detail')).forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#add-product').disabled=false;$('#add-product').innerHTML='Adicionar à sacola <span>＋</span>';}));
  $('#add-product').addEventListener('click',()=>{if(addCatalogItem(p.id,selected)){closeDialog($('#product-dialog'));showCart();}});
@@ -54,15 +56,28 @@ function addCatalogItem(id,size){
 $('#product-grid').addEventListener('click',e=>{const b=e.target.closest('[data-product]');if(b)showProduct(b.dataset.product);});
 function showSizeGuide(){showInfo('Guia de medidas',`<p>Medidas da peça estendida, em centímetros. Compare com uma camiseta que você já gosta de vestir.</p><table><thead><tr><th scope="col">Tamanho</th><th scope="col">Largura</th><th scope="col">Comprimento</th></tr></thead><tbody><tr><th scope="row">P</th><td>54 cm</td><td>70 cm</td></tr><tr><th scope="row">M</th><td>57 cm</td><td>73 cm</td></tr><tr><th scope="row">G</th><td>60 cm</td><td>76 cm</td></tr><tr><th scope="row">GG</th><td>63 cm</td><td>79 cm</td></tr></tbody></table><p style="margin-top:20px">Tabela demonstrativa. As medidas finais devem ser conferidas com o fornecedor antes da venda real.</p>`);}
 $('#design-form .size-guide-button').addEventListener('click',showSizeGuide);
+$('#footer-size-guide').addEventListener('click',showSizeGuide);
+$('#open-returns').addEventListener('click',()=>showInfo('Trocas e devoluções','<p>Política demonstrativa. Os termos reais devem ser definidos antes de iniciar vendas.</p><h3>30 dias para decidir</h3><p>Peças do catálogo podem ser trocadas ou devolvidas em até 30 dias após o recebimento, sem uso, com etiqueta e na embalagem original.</p><h3>Primeira troca por nossa conta</h3><p>Errou o tamanho? A primeira troca de tamanho tem envio de ida e volta gratuito.</p><h3>Camisetas personalizadas</h3><p>Peças criadas no estúdio são produzidas sob demanda e só entram em troca por defeito de fabricação ou erro de produção. Por isso a prévia é aprovada antes de produzir.</p>'));
+$('#open-shipping').addEventListener('click',()=>showInfo('Entregas e prazos',`<p>Valores e prazos demonstrativos.</p><h3>Padrão</h3><p>R$ 14,90 · 5 a 8 dias úteis. Grátis em pedidos a partir de ${money(FREE_SHIPPING_MIN)} em produtos.</p><h3>Expressa</h3><p>R$ 24,90 · 2 a 3 dias úteis.</p><h3>Personalizadas</h3><p>Peças do estúdio somam 3 dias úteis de produção ao prazo de entrega. Estampas sob medida entram em produção após a aprovação da prévia.</p><h3>Acompanhamento</h3><p>Em uma loja real, o código de rastreio seria enviado por e-mail assim que a peça saísse para entrega.</p>`));
+$('#open-contact').addEventListener('click',()=>showInfo('Fale com a gente','<p>Canal de atendimento demonstrativo.</p><h3>Como funcionaria</h3><p>Atendimento por WhatsApp e e-mail, de segunda a sexta, das 9h às 18h. Dúvidas sobre tamanho, prazo ou estampa respondidas em até um dia útil.</p><h3>Por enquanto</h3><p>Esta versão não envia nem recebe mensagens. Consulte as dúvidas frequentes para as respostas mais comuns.</p>'));
+$('#newsletter').addEventListener('submit',e=>{e.preventDefault();if(!e.target.reportValidity())return;e.target.reset();toast('Cadastro demonstrativo: nenhum e-mail foi enviado ou guardado.');});
 function showInfo(title,html){$('#info-title').textContent=title;$('#info-content').innerHTML=html;openDialog('#info-dialog');}
-function itemThumb(item){return `<div class="cart-thumb"><img src="${item.preview&&validImageURL(item.preview)?item.preview:`assets/tee-${item.base}.png`}" alt="${esc(item.name)}">${item.preview?'':graphicHTML(item)}</div>`;}
+function itemThumb(item){return `<div class="cart-thumb">${item.preview&&validImageURL(item.preview)?`<img src="${item.preview}" alt="${esc(item.name)}">`:teePicture(item.base,esc(item.name),'88px')+graphicHTML(item)}</div>`;}
 function showCart(){renderCart();openDialog('#cart-dialog');}
 function renderCart(){
  $('#cart-title-count').textContent=`(${totals(cart).count})`;
  if(!cart.length){$('#cart-content').innerHTML=`<div class="empty-state"><h3>Espaço para o seu próximo favorito.</h3><p>Sua sacola está vazia. Encontre uma peça ou crie a sua.</p><button class="button button-blue" id="continue-shopping">Explorar a coleção <span>↗</span></button></div>`;$('#continue-shopping').addEventListener('click',()=>{closeDialog($('#cart-dialog'));location.hash='colecao';});return;}
  const t=totals(cart);
- $('#cart-content').innerHTML=cart.map(item=>`<article class="cart-item">${itemThumb(item)}<div><h3>${esc(item.name)}</h3><p>${esc(item.color)} / ${esc(item.size)}</p>${item.id==='custom'?'<p>Estampa personalizada inclusa</p>':''}<div class="cart-item-bottom"><div class="quantity"><button data-qty="-1" data-key="${esc(item.key)}" aria-label="Diminuir quantidade de ${esc(item.name)}">−</button><span>${item.qty}</span><button data-qty="1" data-key="${esc(item.key)}" aria-label="Aumentar quantidade de ${esc(item.name)}" ${item.qty>=10?'disabled':''}>+</button></div><strong class="price">${money(item.price*item.qty)}</strong></div><button class="remove-item" data-remove="${esc(item.key)}">Remover</button></div></article>`).join('')+`<div class="cart-summary"><div class="summary-row"><span>Subtotal</span><span>${money(t.subtotal)}</span></div><div class="summary-row"><span>Entrega padrão simulada</span><span>${t.delivery?money(t.delivery):'Grátis'}</span></div><p class="helper">Frete padrão grátis a partir de R$ 250.</p><div class="summary-row summary-total"><span>Total estimado</span><span>${money(t.total)}</span></div><button class="button button-blue" id="begin-checkout">Continuar para compra <span>→</span></button><p class="helper">Compra demonstrativa. Nenhum valor será cobrado.</p></div>`;
+ $('#cart-content').innerHTML=cart.map(item=>`<article class="cart-item">${itemThumb(item)}<div><h3>${esc(item.name)}</h3><p>${esc(item.color)} / ${esc(item.size)}</p>${item.id==='custom'?(customMode(item.design)==='brief'?`<p class="brief-excerpt">“${esc(item.design.brief)}”</p><p>Arte criada pela equipe · prévia para aprovação</p>`:'<p>Estampa personalizada inclusa</p>'):''}<div class="cart-item-bottom"><div class="quantity"><button data-qty="-1" data-key="${esc(item.key)}" aria-label="Diminuir quantidade de ${esc(item.name)}">−</button><span>${item.qty}</span><button data-qty="1" data-key="${esc(item.key)}" aria-label="Aumentar quantidade de ${esc(item.name)}" ${item.qty>=10?'disabled':''}>+</button></div><strong class="price">${money(item.price*item.qty)}</strong></div><button class="remove-item" data-remove="${esc(item.key)}">Remover</button></div></article>`).join('')+`<div class="cart-summary"><div class="summary-row"><span>Subtotal</span><span>${money(t.subtotal)}</span></div><div class="summary-row"><span>Entrega padrão simulada</span><span>${t.delivery?money(t.delivery):'Grátis'}</span></div>${shippingProgressHTML(t.subtotal)}<div class="summary-row summary-total"><span>Total estimado</span><span>${money(t.total)}</span></div><button class="button button-blue" id="begin-checkout">Continuar para compra <span>→</span></button><button class="text-button" id="keep-shopping">Continuar comprando</button><p class="helper">Compra demonstrativa. Nenhum valor será cobrado.</p></div>`;
  $('#begin-checkout').addEventListener('click',()=>{closeDialog($('#cart-dialog'));showCheckout();});
+ $('#keep-shopping').addEventListener('click',()=>{closeDialog($('#cart-dialog'));location.hash='colecao';});
+ $('[data-suggest]',$('#cart-content'))?.addEventListener('click',e=>{closeDialog($('#cart-dialog'));showProduct(e.currentTarget.dataset.suggest);});
+}
+function shippingProgressHTML(subtotal){
+ const remaining=FREE_SHIPPING_MIN-subtotal,pct=Math.min(100,Math.round(subtotal/FREE_SHIPPING_MIN*100));
+ if(remaining<=0)return `<div class="shipping-progress unlocked"><p><strong>Frete grátis liberado.</strong> Entrega padrão por nossa conta.</p><div class="progress-track"><div class="progress-fill" style="width:100%"></div></div></div>`;
+ const s=shippingSuggestion(cart);
+ return `<div class="shipping-progress"><p>Faltam <strong>${money(remaining)}</strong> para o frete grátis.</p><div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>${s?`<button class="suggestion" data-suggest="${s.id}"><span class="suggestion-thumb">${teePicture(s.base,'','60px')}${graphicHTML(s)}</span><span><strong>Complete com ${esc(s.name)}</strong><small>${money(s.price)} · ${s.price>=remaining?'libera o frete grátis':'e chegue mais perto'}</small></span><span class="suggestion-arrow">→</span></button>`:''}</div>`;
 }
 $('#open-cart').addEventListener('click',showCart);
 $('#cart-content').addEventListener('click',e=>{const q=e.target.closest('[data-qty]'),r=e.target.closest('[data-remove]');if(q)cart=changeQuantity(cart,q.dataset.key,Number(q.dataset.qty));if(r)cart=cart.filter(i=>i.key!==r.dataset.remove);if(q||r){saveCart();renderCart();}});
@@ -86,16 +101,32 @@ function showCheckout(){
  });
  openDialog('#checkout-dialog');
 }
-$('#view-orders').addEventListener('click',()=>showInfo('Meus pedidos demo',orders.length?`<p>Histórico local deste navegador. Todos os pedidos são demonstrativos.</p>${orders.map(o=>`<article class="order-record"><strong>${esc(o.id)} · ${money(o.total)}</strong><p>${esc(new Date(o.date).toLocaleDateString('pt-BR'))} · ${esc(o.payment)} simulado</p><ul>${o.items.map(i=>`<li>${esc(i.name)} · ${esc(i.color)} · ${esc(i.size)} × ${esc(i.qty)}</li>`).join('')}</ul></article>`).join('')}`:'<div class="empty-state"><h3>Nenhum pedido por aqui.</h3><p>Finalize uma compra demonstrativa para ver seu histórico.</p></div>'));
-$('#open-help').addEventListener('click',()=>showInfo('Dúvidas frequentes','<h3>Esta loja já vende produtos?</h3><p>Esta versão é demonstrativa. Você pode explorar peças, criar estampas e simular uma compra. Nenhum valor é cobrado.</p><h3>Como funciona a personalização?</h3><p>Escolha uma base branca ou preta, escreva seu texto e envie uma imagem PNG, JPG ou WebP. Ajuste tamanho, posição vertical e rotação. A prévia acompanha a peça na sacola.</p><h3>Minha imagem é enviada para algum lugar?</h3><p>Não. A imagem é processada neste navegador. A sacola e os pedidos demonstrativos ficam salvos apenas neste dispositivo, quando o armazenamento está disponível.</p><h3>Como funciona a entrega?</h3><p>O checkout simula frete padrão de R$ 14,90, grátis a partir de R$ 250 em produtos, ou expresso de R$ 24,90. Prazos e valores são exemplos.</p><h3>E as trocas?</h3><p>Não há entregas ou trocas nesta demonstração. A política da loja deverá ser definida antes de iniciar vendas reais.</p>'));
+$('#view-orders').addEventListener('click',()=>showInfo('Meus pedidos demo',orders.length?`<p>Histórico local deste navegador. Todos os pedidos são demonstrativos.</p>${orders.map(o=>`<article class="order-record"><strong>${esc(o.id)} · ${money(o.total)}</strong><p>${esc(new Date(o.date).toLocaleDateString('pt-BR'))} · ${esc(o.payment)} simulado</p><ul>${o.items.map(i=>`<li>${esc(i.name)} · ${esc(i.color)} · ${esc(i.size)} × ${esc(i.qty)}${i.design?.brief?`<br><small>“${esc(i.design.brief)}”</small>`:''}</li>`).join('')}</ul></article>`).join('')}`:'<div class="empty-state"><h3>Nenhum pedido por aqui.</h3><p>Finalize uma compra demonstrativa para ver seu histórico.</p></div>'));
+$('#open-help').addEventListener('click',()=>showInfo('Dúvidas frequentes','<h3>Esta loja já vende produtos?</h3><p>Esta versão é demonstrativa. Você pode explorar peças, criar estampas e simular uma compra. Nenhum valor é cobrado.</p><h3>Como funciona a personalização?</h3><p>Escolha uma base branca ou preta, escreva seu texto e envie uma imagem PNG, JPG ou WebP. Ajuste tamanho, posição vertical e rotação. A prévia acompanha a peça na sacola.</p><h3>E se eu não souber desenhar?</h3><p>No estúdio, escolha “Descrever a ideia” e conte como imagina a estampa: cores, estilo, frases, referências. A equipe cria a arte e envia a prévia para aprovação antes de produzir. A criação está incluída no preço da peça sob medida.</p><h3>Minha imagem é enviada para algum lugar?</h3><p>Não. A imagem é processada neste navegador. A sacola e os pedidos demonstrativos ficam salvos apenas neste dispositivo, quando o armazenamento está disponível.</p><h3>Como funciona a entrega?</h3><p>O checkout simula frete padrão de R$ 14,90, grátis a partir de R$ 250 em produtos, ou expresso de R$ 24,90. Prazos e valores são exemplos.</p><h3>E as trocas?</h3><p>A política demonstrativa está em “Trocas e devoluções”, no rodapé: 30 dias para peças do catálogo, primeira troca de tamanho grátis, e personalizadas só por defeito. Os termos reais devem ser definidos antes de iniciar vendas.</p>'));
 
 // All image processing stays in this browser. Preview and exported design share one renderer.
 const canvas=$('#design-canvas'),ctx=canvas.getContext('2d');
 const imageCache={};
 function loadImage(src){return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('Não foi possível carregar a imagem.'));img.src=src;});}
 let uploadImage=null,uploadData=null,uploadGeneration=0,designReady=false;
-const designDefaults={color:'white',size:'M',text:'DO MEU\nJEITO.',font:'condensed',ink:'#1737bc',scale:80,y:0,rotation:0};
-function getDesign(){return {color:$('#design-color').value,size:$('#design-size').value,text:$('#design-text').value,font:$('#design-font').value,ink:$('#design-ink').value,scale:Number($('#design-scale').value),y:Number($('#design-y').value),rotation:Number($('#design-rotation').value)};}
+const designDefaults={color:'white',size:'M',text:'DO MEU\nJEITO.',font:'condensed',ink:'#1737bc',scale:80,y:0,rotation:0,brief:''};
+let designMode='create';
+function setMode(mode){
+ designMode=mode;
+ $$('[data-mode]').forEach(b=>{const on=b.dataset.mode===mode;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
+ $('#create-fields').hidden=mode!=='create';$('#brief-fields').hidden=mode!=='brief';
+ $('#custom-label').textContent=mode==='brief'?'Sua camiseta com estampa sob medida':'Sua camiseta personalizada';
+ $('#custom-price').textContent=money(CUSTOM[mode].price);
+ const base=PRODUCTS.find(p=>p.id==='essencial-branca').price;
+ $('#custom-breakdown').textContent=`Base Essencial ${money(base)} + ${mode==='brief'?'criação da arte e estampa':'estampa frontal'} ${money(CUSTOM[mode].price-base)}`;
+ $('#custom-helper').textContent=mode==='brief'?'Criação da arte inclusa. Você aprova a prévia antes da produção. Produto demonstrativo.':'Personalização frontal inclusa. Produto demonstrativo.';
+ renderDesign();
+}
+$$('[data-mode]').forEach(b=>b.addEventListener('click',()=>{setMode(b.dataset.mode);if(b.dataset.mode==='brief')$('#design-brief').focus();}));
+$$('.starter').forEach(b=>b.addEventListener('click',()=>{$('#design-text').value=b.dataset.starter;renderDesign();$('#design-text').focus();}));
+function syncSwatches(){const ink=$('#design-ink').value.toLowerCase();$$('.swatch[data-ink]').forEach(b=>{const on=b.dataset.ink===ink;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});}
+$$('.swatch[data-ink]').forEach(b=>b.addEventListener('click',()=>{$('#design-ink').value=b.dataset.ink;syncSwatches();renderDesign();}));
+function getDesign(){return {mode:designMode,color:$('#design-color').value,size:$('#design-size').value,text:$('#design-text').value,font:$('#design-font').value,ink:$('#design-ink').value,scale:Number($('#design-scale').value),y:Number($('#design-y').value),rotation:Number($('#design-rotation').value),brief:$('#design-brief').value.trim()};}
 const fontFamily={condensed:'"Barlow Condensed", Impact, sans-serif',sans:'Manrope, Arial, sans-serif',serif:'Georgia, serif'};
 function renderDesign(){
  const d=getDesign();
@@ -103,7 +134,9 @@ function renderDesign(){
  if(!imageCache[d.color])return;
  ctx.clearRect(0,0,1000,1000);ctx.drawImage(imageCache[d.color],0,0,1000,1000);
  ctx.save();ctx.translate(500,485+d.y*3.3);ctx.rotate(d.rotation*Math.PI/180);ctx.scale(d.scale/100,d.scale/100);
- const width=300,height=330;ctx.beginPath();ctx.rect(-width/2,-height/2,width,height);ctx.clip();
+ const width=300,height=330;
+ if(d.mode==='brief'){drawBriefPlaceholder(d,width,height);ctx.restore();canvas.setAttribute('aria-label',`Prévia: camiseta ${d.color==='white'?'branca':'preta'}, tamanho ${d.size}, área reservada para a estampa descrita`);return;}
+ ctx.beginPath();ctx.rect(-width/2,-height/2,width,height);ctx.clip();
  const hasText=d.text.trim().length>0;
  let textTop=-height/2,textHeight=height;
  if(uploadImage){const available=hasText?height*.61:height;const fit=Math.min(width/uploadImage.width,available/uploadImage.height);const w=uploadImage.width*fit,h=uploadImage.height*fit;ctx.drawImage(uploadImage,-w/2,-height/2+(available-h)/2,w,h);if(hasText){textTop=-height/2+available+10;textHeight=height-available-10;}}
@@ -117,8 +150,16 @@ function renderDesign(){
  }
  ctx.restore();canvas.setAttribute('aria-label',`Prévia: camiseta ${d.color==='white'?'branca':'preta'}, tamanho ${d.size}${hasText?`, texto ${d.text.replace(/\n/g,' ')}`:''}${uploadImage?', com imagem personalizada':''}`);
 }
-const readyDesign=Promise.all([loadImage('assets/tee-white.png'),loadImage('assets/tee-black.png'),document.fonts.ready]).then(([white,black])=>{imageCache.white=white;imageCache.black=black;designReady=true;renderDesign();}).catch(()=>toast('Não foi possível carregar a base da camiseta. Atualize a página para tentar de novo.'));
-$('#design-form').addEventListener('input',e=>{if(e.target.type!=='file')renderDesign();});
+function drawBriefPlaceholder(d,width,height){
+ const ink=d.color==='white'?'#1737bc':'#f7f8f9';
+ ctx.strokeStyle=ink;ctx.lineWidth=3;ctx.setLineDash([14,10]);ctx.strokeRect(-width/2,-height/2,width,height);ctx.setLineDash([]);
+ for(const [x,y] of [[-width/2,-height/2],[width/2,-height/2],[-width/2,height/2],[width/2,height/2]]){ctx.fillStyle='#fff';ctx.fillRect(x-7,y-7,14,14);ctx.strokeRect(x-7,y-7,14,14);}
+ ctx.fillStyle=ink;ctx.textAlign='center';ctx.textBaseline='middle';
+ ctx.font=`800 48px ${fontFamily.condensed}`;ctx.fillText('SUA ESTAMPA',0,-32,width-20);ctx.fillText('SOB MEDIDA',0,18,width-20);
+ ctx.font=`600 15px ${fontFamily.sans}`;ctx.fillText(d.brief?'A PARTIR DA SUA DESCRIÇÃO':'DESCREVA A IDEIA AO LADO',0,78,width-24);
+}
+const readyDesign=Promise.all([loadImage('assets/tee-white-1000.webp'),loadImage('assets/tee-black-1000.webp'),document.fonts.ready]).then(([white,black])=>{imageCache.white=white;imageCache.black=black;designReady=true;renderDesign();}).catch(()=>toast('Não foi possível carregar a base da camiseta. Atualize a página para tentar de novo.'));
+$('#design-form').addEventListener('input',e=>{if(e.target.id==='design-brief')$('#brief-count').textContent=e.target.value.length;if(e.target.id==='design-ink')syncSwatches();if(e.target.type!=='file')renderDesign();});
 $('#design-form').addEventListener('change',e=>{if(e.target.type!=='file')renderDesign();});
 function clearUpload(){uploadGeneration++;uploadImage=null;uploadData=null;$('#design-upload').value='';$('#remove-upload').hidden=true;$('#upload-status').textContent='Use uma imagem sua ou que você tenha autorização para usar.';renderDesign();}
 $('#remove-upload').addEventListener('click',clearUpload);
@@ -130,19 +171,22 @@ $('#design-upload').addEventListener('change',async e=>{
  const url=URL.createObjectURL(file);
  try{const original=await loadImage(url);if(original.width*original.height>40000000)throw new Error('Imagem muito grande. Use uma versão com até 40 megapixels.');const temp=document.createElement('canvas');const ratio=Math.min(1,700/Math.max(original.width,original.height));temp.width=Math.round(original.width*ratio);temp.height=Math.round(original.height*ratio);temp.getContext('2d').drawImage(original,0,0,temp.width,temp.height);const data=temp.toDataURL('image/webp',.85),image=await loadImage(data);if(generation!==uploadGeneration)return;uploadData=data;uploadImage=image;$('#remove-upload').hidden=false;$('#upload-status').textContent=`${file.name} · imagem pronta`;renderDesign();}catch(error){if(generation===uploadGeneration){$('#upload-status').textContent=error.message||'Não foi possível ler esse arquivo. Escolha outra imagem.';e.target.value='';}}finally{URL.revokeObjectURL(url);}
 });
-$('#reset-design').addEventListener('click',()=>{for(const [key,value] of Object.entries(designDefaults))$(`#design-${key}`).value=value;clearUpload();renderDesign();toast('Estúdio pronto para uma nova ideia.');});
+$('#reset-design').addEventListener('click',()=>{for(const [key,value] of Object.entries(designDefaults))$(`#design-${key}`).value=value;$('#brief-count').textContent='0';syncSwatches();clearUpload();setMode('create');toast('Estúdio pronto para uma nova ideia.');});
 $('#download-design').addEventListener('click',async()=>{await readyDesign;if(!designReady)return;renderDesign();canvas.toBlob(blob=>{if(!blob){toast('Não foi possível gerar a prévia. Tente novamente.');return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='avesso-minha-camiseta.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},'image/png');});
 $('#design-form').addEventListener('submit',async e=>{
  e.preventDefault();await readyDesign;if(!designReady)return;
- const d=getDesign();if(!d.text.trim()&&!uploadImage){toast('Adicione um texto ou uma imagem à sua estampa.');$('#design-text').focus();return;}
+ const d=getDesign();
+ if(d.mode==='brief'){if(d.brief.length<10){toast('Descreva sua ideia com pelo menos 10 caracteres para a equipe entender.');$('#design-brief').focus();return;}}
+ else if(!d.text.trim()&&!uploadImage){toast('Adicione um texto ou uma imagem à sua estampa.');$('#design-text').focus();return;}
  renderDesign();const thumb=document.createElement('canvas');thumb.width=500;thumb.height=500;thumb.getContext('2d').drawImage(canvas,0,0,500,500);
- const item={id:'custom',key:`custom-${crypto.randomUUID()}`,name:'Sua camiseta · Studio',category:'custom',base:d.color,color:d.color==='white'?'Branco giz':'Preto lavado',size:d.size,price:12990,preview:thumb.toDataURL('image/jpeg',.85),design:{...d,image:uploadData}};
+ const design=d.mode==='brief'?{mode:'brief',color:d.color,size:d.size,brief:d.brief,scale:d.scale,y:d.y,rotation:d.rotation}:{...d,brief:undefined,image:uploadData};
+ const item={id:'custom',key:`custom-${crypto.randomUUID()}`,name:CUSTOM[d.mode].name,category:'custom',base:d.color,color:d.color==='white'?'Branco giz':'Preto lavado',size:d.size,price:CUSTOM[d.mode].price,preview:thumb.toDataURL('image/jpeg',.85),design};
  try{cart=addItem(cart,item);saveCart();showCart();}catch(error){toast(error.message);}
 });
 
 function route(){
  const hash=location.hash||'#inicio',studio=hash==='#estudio';
- $('#shop-view').hidden=studio;$('#studio-view').hidden=!studio;
+ $('#shop-view').hidden=studio;$('#studio-view').hidden=!studio;document.documentElement.classList.toggle('studio',studio);
  document.title=studio?'AVESSO Studio — Crie sua camiseta':'AVESSO — Vista do seu jeito.';
  if(hash.startsWith('#produto-'))showProduct(hash.slice(9));
  if(studio){window.scrollTo({top:0,behavior:'instant'});renderDesign();}

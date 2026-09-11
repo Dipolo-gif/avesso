@@ -2,11 +2,13 @@
 
 AVESSO: marca provisória de camisetas independentes. Fotografia editorial de concreto e algodão, tipografia Barlow Condensed para campanha e Manrope para interface. Paleta: azul #1737bc, tinta #161719, papel frio #f7f8f9, cinza #e9eaec e texto secundário #64666e. A página combina campanha fotográfica com catálogo acessível logo abaixo, cartões sem molduras e estúdio com prévia grande. Movimento: entrada suave da campanha, faixa tipográfica contínua, aproximação das peças no hover e abertura lateral da sacola. `prefers-reduced-motion` desliga movimento.
 
-Imagens geradas usando a ferramenta integrada image_gen. Arquivos finais relativos à pasta deste projeto:
+Imagens geradas usando a ferramenta integrada image_gen. Originais em `assets-src/`:
 
-- `dist/assets/editorial.png` — 1536 × 1024.
-- `dist/assets/tee-black.png` — 1254 × 1254.
-- `dist/assets/tee-white.png` — 1254 × 1254.
+- `assets-src/editorial.png` — 1536 × 1024.
+- `assets-src/tee-black.png` — 1254 × 1254.
+- `assets-src/tee-white.png` — 1254 × 1254.
+
+`npm run images` gera em `dist/assets/` as versões servidas: WebP em 768/1200/1536 (editorial) e 400/800/1000/1254 (camisetas), mais um JPEG no tamanho máximo como fallback. O HTML usa `<picture>` com `srcset`/`sizes`; o canvas do estúdio usa as versões de 1000 px.
 
 ## Prompt editorial
 

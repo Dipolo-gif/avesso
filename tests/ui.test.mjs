@@ -13,7 +13,7 @@ async function setup(storage={}){
  w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'));};
  Object.defineProperty(w.document,'fonts',{value:{ready:Promise.resolve()}});
  w.Image=class {width=1000;height=1000;set src(value){this._src=value;queueMicrotask(()=>this.onload?.());}get src(){return this._src;}};
- w.HTMLCanvasElement.prototype.getContext=()=>({clearRect(){},drawImage(){},save(){},translate(){},rotate(){},scale(){},beginPath(){},rect(){},clip(){},measureText(t){return {width:t.length*45};},fillText(){},restore(){}});
+ w.HTMLCanvasElement.prototype.getContext=()=>({clearRect(){},drawImage(){},save(){},translate(){},rotate(){},scale(){},beginPath(){},rect(){},clip(){},measureText(t){return {width:t.length*45};},fillText(){},restore(){},setLineDash(){},strokeRect(){},fillRect(){}});
  w.HTMLCanvasElement.prototype.toDataURL=()=> 'data:image/jpeg;base64,AA==';
  w.HTMLCanvasElement.prototype.toBlob=function(cb){cb(new w.Blob(['test'],{type:'image/png'}));};
  for(const [key,value] of Object.entries(storage))w.localStorage.setItem(key,JSON.stringify(value));
@@ -55,6 +55,19 @@ test('customized variant includes snapshot and survives cart reload',async()=>{
  saved=JSON.parse(s.w.localStorage.getItem('avesso.cart.v1'));assert.equal(saved[0].size,'GG');assert.equal(saved[0].design.text,'MINHA IDEIA');assert(saved[0].preview.startsWith('data:image/jpeg'));assert.equal(saved[0].price,12990);
  }finally{s.close();}
  const r=await setup({'avesso.cart.v1':saved});try{r.click('#open-cart');assert.equal(r.doc.querySelector('#cart-count').textContent,'1');assert(r.doc.querySelector('.cart-thumb img').src.startsWith('data:image/jpeg'));}finally{r.close();}
+});
+test('described print requires a brief, prices the design service and keeps the brief through reload',async()=>{
+ const s=await setup();let saved;try{
+ s.w.location.hash='estudio';await new Promise(r=>setTimeout(r,10));
+ s.click('[data-mode="brief"]');assert.equal(s.doc.querySelector('#brief-fields').hidden,false);assert.equal(s.doc.querySelector('#create-fields').hidden,true);assert.equal(s.doc.querySelector('#custom-price').textContent,'R$ 149,90'.replace(' ',' '));
+ const submit=()=>{s.doc.querySelector('#design-form').dispatchEvent(new s.w.Event('submit',{bubbles:true,cancelable:true}));return new Promise(r=>setTimeout(r,10));};
+ s.doc.querySelector('#design-brief').value='curta';await submit();assert.equal(s.w.localStorage.getItem('avesso.cart.v1'),null);
+ s.doc.querySelector('#design-brief').value='Uma onda azul minimalista no peito com a frase sem pressa';s.doc.querySelector('#design-color').value='black';await submit();
+ saved=JSON.parse(s.w.localStorage.getItem('avesso.cart.v1'));assert.equal(saved[0].price,14990);assert.equal(saved[0].design.mode,'brief');assert(saved[0].design.brief.includes('onda azul'));assert.equal(saved[0].design.image,undefined);
+ assert(s.doc.querySelector('#cart-content').textContent.includes('onda azul'));
+ s.click('#reset-design');assert.equal(s.doc.querySelector('#brief-fields').hidden,true);assert.equal(s.doc.querySelector('#custom-price').textContent,'R$ 129,90'.replace(' ',' '));
+ }finally{s.close();}
+ const r=await setup({'avesso.cart.v1':saved});try{r.click('#open-cart');assert.equal(r.doc.querySelector('.cart-item h3').textContent,'Sua camiseta · Estampa sob medida');assert(r.doc.querySelector('.brief-excerpt').textContent.includes('onda azul'));}finally{r.close();}
 });
 test('imperative tools register with schemas and reject invalid writes without changing cart',async()=>{
  const s=await setup();try{
