@@ -50,3 +50,7 @@ WebMCP opcional: leitura de catálogo/sacola e adição de produto usam as mesma
 ## SEO e presença
 
 `dist/robots.txt`, `dist/sitemap.xml` e `dist/llms.txt` (resumo da loja para assistentes de IA) são publicados junto com o site. O `index.html` traz canonical, Open Graph/Twitter Card e JSON-LD (`OnlineStore`, `WebSite` e a coleção como `ItemList` de `Product`). `npm run validate` confere que esses arquivos existem, que as URLs apontam para arquivos reais e que **nenhum segredo** (`sk_…`, `service_role`, JWT, `sb_secret_`, chave privada) está em `dist/` — a publicação falha se encontrar. Para o Google indexar mais rápido, cadastre o site no Search Console e envie o sitemap.
+
+## Animações (Motion)
+
+`dist/motion-ui.js` usa a biblioteca [Motion](https://motion.dev) (`animate`, `inView`, `stagger`) para revelar blocos ao rolar: faixa de confiança, coleção, teaser e estúdio, "sobre", pilares e rodapé. A biblioteca é servida pelo próprio site em `dist/vendor/motion.js` (só as três funções, ~23 KB gzip) por causa da CSP `script-src 'self'`; `npm run vendor` regenera o arquivo a partir do pacote npm. Com `prefers-reduced-motion` ou sem JS nada é escondido; blocos pulados pelo usuário (tecla End, rolagem rápida) aparecem sem animação.
