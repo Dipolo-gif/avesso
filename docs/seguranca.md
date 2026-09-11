@@ -13,7 +13,7 @@ Arquitetura: site estático no GitHub Pages + Supabase (Postgres, Storage) acess
 | 7 | Restringir acessos | Exposição automática de tabelas desligada no projeto; grants explícitos; `authenticated` e `rls_auto_enable()` sem execução. | migrações 0001/0002 |
 | 8 | Bloquear mass assignment | `place_order` só lê campos conhecidos do JSON; preço, nome e status são definidos pelo servidor, nunca pelo cliente. Colunas com `check`. | `place_order` |
 | 9 | Proteger cookies | Sem cookies: a sessão (JWT de 1 h + refresh token) fica em `localStorage`, protegida pela CSP estrita (`script-src 'self'`, nenhum script de terceiros). Logout invalida o refresh token no servidor. Sacola saneada ao carregar. | `dist/api.js` |
-| 10 | Hash nas senhas | Senhas nunca passam pelo código do site: o Supabase Auth guarda com bcrypt. Mínimo de 8 caracteres com letras e números (validado no servidor), confirmação de e-mail obrigatória, redefinição por link. | Auth |
+| 10 | Hash nas senhas | Senhas nunca passam pelo código do site: o Supabase Auth guarda com bcrypt. Mínimo de 8 caracteres com letras e números, exigido no servidor (Supabase Auth → Password requirements) e no cliente, confirmação de e-mail obrigatória, redefinição por link. | Auth |
 | 11 | Rate limit | Login/cadastro/recuperação: limites nativos do Supabase Auth por IP e por e-mail (painel → Rate Limits). Pedidos: 10/hora por e-mail em `place_order`; limites de tamanho na sacola. Falta limite por IP nas funções públicas — exigiria Edge Function ou Cloudflare. | Auth, `place_order` |
 | 12 | Bot protection | Parcial: honeypot na newsletter, validação estrita no servidor, sem envio de e-mail automático (nada a abusar). Sem CAPTCHA — recomendado Cloudflare Turnstile antes de integrar pagamento. | `index.html`, `app.js` |
 | 13 | Queries parametrizadas | Nenhum SQL montado no cliente. PostgREST e funções PL/pgSQL com parâmetros tipados. | — |
@@ -21,7 +21,7 @@ Arquitetura: site estático no GitHub Pages + Supabase (Postgres, Storage) acess
 | 15 | Vazar conteúdo | Pedidos e artes não são legíveis pela API pública (401/400). Erros do servidor mostrados ao usuário só quando são mensagens de validação (códigos 22023/53400); o resto vira mensagem genérica. | `dist/api.js` |
 | 16 | Restringir uploads | Bucket privado, 5 MB, apenas `image/webp` e `image/jpeg`, nomes `uuid/preview.jpg` ou `uuid/art.webp`; imagens reencodadas no navegador antes de subir (remove metadados). Sem leitura pública. | migração 0001 |
 | 17 | Trim respostas de API | `select` explícito de colunas no catálogo; funções devolvem só o necessário (`get_order` não devolve endereço). | `dist/api.js`, `get_order` |
-| 18 | Security headers | CSP (scripts, estilos e fontes só do próprio site; conexões só ao Supabase), referrer policy, `X-Frame-Options`, `Permissions-Policy`, COOP/CORP, `nosniff`. No GitHub Pages os cabeçalhos HTTP não são configuráveis, então a CSP vai via `<meta>`; o servidor local envia todos. | `index.html`, `server.mjs` |
+| 18 | Security headers | CSP (scripts, estilos e fontes só do próprio site; conexões só ao Supabase), referrer policy, `Permissions-Policy`, COOP/CORP, `nosniff`. No GitHub Pages os cabeçalhos HTTP não são configuráveis: a CSP vai via `<meta>` e `X-Frame-Options`/`frame-ancestors` não têm efeito — por isso `frame-guard.js` protege contra clickjacking (tira a página de um iframe de outra origem). O servidor local envia todos os cabeçalhos. | `index.html`, `frame-guard.js`, `server.mjs` |
 | 19 | Forçar HTTPS | GitHub Pages com "Enforce HTTPS" e `upgrade-insecure-requests` na CSP. | Pages |
 | 20 | Scan de dependências | `npm audit --audit-level=high` no CI antes de publicar; Dependabot semanal (npm e Actions); alertas e correções automáticas ativos. O site não tem dependência em runtime. | `.github/` |
 
@@ -34,6 +34,16 @@ Arquitetura: site estático no GitHub Pages + Supabase (Postgres, Storage) acess
 - Dados do usuário criptografados: em repouso (AES-256 pelo Supabase) e em trânsito (TLS). Criptografia por coluna (Vault) fica como opção se houver dados sensíveis além de endereço.
 - Chaves no cliente: só a publishable; verificação automática no CI impede `sk_`, `service_role` ou JWT em `dist/`.
 - Google: exige OAuth Client no Google Cloud + Client ID/Secret no painel do Supabase (feito pelo dono da conta).
+
+## Sondagem de segurança (2026-09-11)
+
+Ataque autorizado ao próprio site com a chave pública. Resultado:
+
+- **OK**: leitura de `orders`/`order_items`/`newsletter_subscribers`/`profiles` negada (401); escrita direta negada (401), inclusive com colunas válidas; `PATCH` de preço negado; `place_order` ignora preço enviado pelo cliente e recalcula no servidor; upload fora do padrão negado (403 RLS / 415 mime); download anônimo negado; `get_order` não devolve endereço/e-mail/nome e retorna `null` com e-mail errado; nenhum segredo no bundle publicado; introspecção REST não lista tabelas/funções ao anônimo; filtro com aspa/OR bloqueado (há WAF na frente); HTTPS forçado; HSTS presente; recover e login não revelam se a conta existe.
+- **Corrigido — clickjacking**: o site podia ser embutido em iframe de terceiros (Pages não permite `X-Frame-Options`; `frame-ancestors` é ignorado em `<meta>`). Adicionado `frame-guard.js`.
+- **Corrigido — senha fraca aceita**: o cadastro aceitava `12345678` (só dígitos). A regra "letras e números" existia no cliente, mas o Supabase não a exigia. Ativado em Authentication → Providers → Email → *Password requirements: Letters and digits* (mínimo já era 8). Reteste: agora `422 weak_password`.
+
+Pendências desta sondagem: "Prevent use of leaked passwords" (HaveIBeenPwned) só no plano Pro; limite por IP nas funções públicas (edge/Cloudflare). Dados de teste criados na sondagem (1 pedido e 1 conta com e-mail `pentest…@mailinator.com`) a remover no painel.
 
 ## Pendências antes de vender de verdade
 
