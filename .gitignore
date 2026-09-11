@@ -2,3 +2,9 @@ node_modules/
 *.tar.gz
 *.zip
 .env
+.env.*
+*.pem
+*.key
+*.p12
+.DS_Store
+Thumbs.db
