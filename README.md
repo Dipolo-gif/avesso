@@ -54,3 +54,7 @@ WebMCP opcional: leitura de catálogo/sacola e adição de produto usam as mesma
 ## Animações (Motion)
 
 `dist/motion-ui.js` usa a biblioteca [Motion](https://motion.dev) (`animate`, `inView`, `stagger`) para revelar blocos ao rolar: faixa de confiança, coleção, teaser e estúdio, "sobre", pilares e rodapé. A biblioteca é servida pelo próprio site em `dist/vendor/motion.js` (só as três funções, ~23 KB gzip) por causa da CSP `script-src 'self'`; `npm run vendor` regenera o arquivo a partir do pacote npm. Com `prefers-reduced-motion` ou sem JS nada é escondido; blocos pulados pelo usuário (tecla End, rolagem rápida) aparecem sem animação.
+
+## Prévia 3D (Three.js)
+
+No estúdio, o botão **Ver em 3D** troca a prévia 2D por uma camiseta em três dimensões (`dist/studio-3d.js`): a silhueta oversized é construída no próprio código (extrusão de uma forma com volume de corpo, gola em tubo) e a estampa desenhada pelo `app.js` (`window.doavessoStudio.drawPrint`) vira textura no peito, acompanhando posição, escala e rotação escolhidas. Gira sozinha (não com `prefers-reduced-motion`) e com arraste/setas. A biblioteca (`dist/vendor/three.js`, ~145 KB gzip, só as classes usadas) é carregada **apenas ao clicar** no botão; sem WebGL o botão não aparece e a prévia 2D segue como está. `npm run vendor` regenera os dois bundles (Motion e Three).

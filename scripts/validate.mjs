@@ -12,8 +12,8 @@ for(const m of [...html.matchAll(/(?:srcset|imagesrcset)="([^"]+)"/g),...app.mat
 }
 refs.push(...[...app.matchAll(/'(assets\/[^']+\.(?:webp|jpg|png))'/g)].map(m=>m[1]));
 for(const ref of new Set(refs))await access(`dist/${ref}`);
-await access('dist/vendor/motion.js');
-for(const file of ['dist/app.js','dist/commerce.js','dist/motion-ui.js','server.mjs'])execFileSync(process.execPath,['--check',file]);
+for(const f of ['dist/vendor/motion.js','dist/vendor/three.js'])await access(f);
+for(const file of ['dist/app.js','dist/commerce.js','dist/motion-ui.js','dist/studio-3d.js','server.mjs'])execFileSync(process.execPath,['--check',file]);
 for(const id of ['inicio','colecao','sobre','studio-view','design-form','design-canvas','product-dialog','cart-dialog','checkout-dialog'])assert(ids.includes(id),`Missing route/control: ${id}`);
 assert(app.includes('e.preventDefault()'),'Checkout must not submit personal data to a server');
 const css=await readFile('dist/styles.css','utf8');

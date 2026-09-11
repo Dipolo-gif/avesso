@@ -172,24 +172,33 @@ function renderDesign(){
  $('#scale-output').textContent=`${d.scale}%`;$('#position-output').textContent=d.y===0?'Centro':d.y<0?'Mais acima':'Mais abaixo';$('#rotation-output').textContent=`${d.rotation}°`;
  if(!imageCache[d.color])return;
  ctx.clearRect(0,0,1000,1000);ctx.drawImage(imageCache[d.color],0,0,1000,1000);
- ctx.save();ctx.translate(500,485+d.y*3.3);ctx.rotate(d.rotation*Math.PI/180);ctx.scale(d.scale/100,d.scale/100);
+ const hasText=drawPrint(ctx,d,true);
+ if(d.mode==='brief')canvas.setAttribute('aria-label',`Prévia: camiseta ${d.color==='white'?'branca':'preta'}, tamanho ${d.size}, área reservada para a estampa descrita`);
+ else canvas.setAttribute('aria-label',`Prévia: camiseta ${d.color==='white'?'branca':'preta'}, tamanho ${d.size}${hasText?`, texto ${d.text.replace(/\n/g,' ')}`:''}${uploadImage?', com imagem personalizada':''}`);
+ document.dispatchEvent(new CustomEvent('doavesso:design',{detail:d}));
+}
+// Desenha só a estampa (texto/imagem ou o marcador do briefing) em um contexto 1000×1000.
+// Com placed=true aplica posição/rotação/escala como na prévia; senão, centrada e sem transformação (textura 3D).
+function drawPrint(c,d,placed){
+ c.save();if(placed){c.translate(500,485+d.y*3.3);c.rotate(d.rotation*Math.PI/180);c.scale(d.scale/100,d.scale/100);}else c.translate(500,500);
  const width=300,height=330;
- if(d.mode==='brief'){drawBriefPlaceholder(d,width,height);ctx.restore();canvas.setAttribute('aria-label',`Prévia: camiseta ${d.color==='white'?'branca':'preta'}, tamanho ${d.size}, área reservada para a estampa descrita`);return;}
- ctx.beginPath();ctx.rect(-width/2,-height/2,width,height);ctx.clip();
+ if(d.mode==='brief'){drawBriefPlaceholder(c,d,width,height);c.restore();return false;}
+ c.beginPath();c.rect(-width/2,-height/2,width,height);c.clip();
  const hasText=d.text.trim().length>0;
  let textTop=-height/2,textHeight=height;
- if(uploadImage){const available=hasText?height*.61:height;const fit=Math.min(width/uploadImage.width,available/uploadImage.height);const w=uploadImage.width*fit,h=uploadImage.height*fit;ctx.drawImage(uploadImage,-w/2,-height/2+(available-h)/2,w,h);if(hasText){textTop=-height/2+available+10;textHeight=height-available-10;}}
+ if(uploadImage){const available=hasText?height*.61:height;const fit=Math.min(width/uploadImage.width,available/uploadImage.height);const w=uploadImage.width*fit,h=uploadImage.height*fit;c.drawImage(uploadImage,-w/2,-height/2+(available-h)/2,w,h);if(hasText){textTop=-height/2+available+10;textHeight=height-available-10;}}
  if(hasText){
   const lines=d.text.split('\n');let fontSize=Math.min(100,textHeight/(lines.length*1.03));
-  ctx.font=`800 ${fontSize}px ${fontFamily[d.font]}`;
-  const widest=Math.max(...lines.map(line=>ctx.measureText(line).width));if(widest>width-8)fontSize*=(width-8)/widest;
-  ctx.font=`800 ${fontSize}px ${fontFamily[d.font]}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=d.ink;
+  c.font=`800 ${fontSize}px ${fontFamily[d.font]}`;
+  const widest=Math.max(...lines.map(line=>c.measureText(line).width));if(widest>width-8)fontSize*=(width-8)/widest;
+  c.font=`800 ${fontSize}px ${fontFamily[d.font]}`;c.textAlign='center';c.textBaseline='middle';c.fillStyle=d.ink;
   const spacing=fontSize*1.03,start=textTop+textHeight/2-(lines.length-1)*spacing/2;
-  lines.forEach((line,i)=>ctx.fillText(line,0,start+i*spacing,width));
+  lines.forEach((line,i)=>c.fillText(line,0,start+i*spacing,width));
  }
- ctx.restore();canvas.setAttribute('aria-label',`Prévia: camiseta ${d.color==='white'?'branca':'preta'}, tamanho ${d.size}${hasText?`, texto ${d.text.replace(/\n/g,' ')}`:''}${uploadImage?', com imagem personalizada':''}`);
+ c.restore();return hasText;
 }
-function drawBriefPlaceholder(d,width,height){
+window.doavessoStudio={getDesign,drawPrint:(c,d)=>drawPrint(c,d,false),ready:()=>readyDesign};
+function drawBriefPlaceholder(ctx,d,width,height){
  const ink=d.color==='white'?'#1737bc':'#f7f8f9';
  ctx.strokeStyle=ink;ctx.lineWidth=3;ctx.setLineDash([14,10]);ctx.strokeRect(-width/2,-height/2,width,height);ctx.setLineDash([]);
  for(const [x,y] of [[-width/2,-height/2],[width/2,-height/2],[-width/2,height/2],[width/2,height/2]]){ctx.fillStyle='#fff';ctx.fillRect(x-7,y-7,14,14);ctx.strokeRect(x-7,y-7,14,14);}
