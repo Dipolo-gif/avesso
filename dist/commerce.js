@@ -6,6 +6,7 @@ export const PRODUCTS=[
  {id:'essencial-preta',name:'Essencial Preta',category:'essential',color:'Preto lavado',base:'black',price:8990,tag:'BÁSICA',graphic:'',graphicClass:'',description:'Aquela camiseta que combina com o dia inteiro. Caimento amplo e uma base fácil de repetir.',print:'',...SPECS},
  {id:'essencial-branca',name:'Essencial Branca',category:'essential',color:'Branco giz',base:'white',price:8990,tag:'BÁSICA',graphic:'',graphicClass:'',description:'Sua tela em branco. Silhueta oversized e visual limpo para combinar do seu jeito.',print:'',...SPECS}
 ];
+export function setProducts(list){PRODUCTS.splice(0,PRODUCTS.length,...list);}
 export const INSTALLMENTS=3;
 export const installment=cents=>Math.ceil(cents/INSTALLMENTS);
 export const CUSTOM={create:{name:'Sua camiseta · Studio',price:12990},brief:{name:'Sua camiseta · Estampa sob medida',price:14990}};
