@@ -45,3 +45,7 @@ Pré-lançamento: os pedidos são registrados de verdade, mas **não há cobran�
 O editor oferece bases branca/preta, tamanho P–GG, texto, três fontes, cores prontas ou livre, upload PNG/JPG/WebP de até 5 MB, escala, posição vertical, rotação e exportação PNG. O modo “Descrever a ideia” troca texto/imagem por um briefing de até 400 caracteres (estampa sob medida, R$ 149,90). A prévia é ilustrativa; não é arquivo técnico de impressão nem prova de cor.
 
 WebMCP opcional: leitura de catálogo/sacola e adição de produto usam as mesmas ações da interface. O navegador precisa suportar `document.modelContext`; suporte não obrigatório para utilizar a loja.
+
+## SEO e presença
+
+`dist/robots.txt`, `dist/sitemap.xml` e `dist/llms.txt` (resumo da loja para assistentes de IA) são publicados junto com o site. O `index.html` traz canonical, Open Graph/Twitter Card e JSON-LD (`OnlineStore`, `WebSite` e a coleção como `ItemList` de `Product`). `npm run validate` confere que esses arquivos existem, que as URLs apontam para arquivos reais e que **nenhum segredo** (`sk_…`, `service_role`, JWT, `sb_secret_`, chave privada) está em `dist/` — a publicação falha se encontrar. Para o Google indexar mais rápido, cadastre o site no Search Console e envie o sitemap.

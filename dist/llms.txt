@@ -1,0 +1,25 @@
+# doavesso
+
+> Loja brasileira de camisetas oversized em algodão pesado, com estúdio online para criar a própria estampa (texto, imagem ou uma ideia descrita, que a marca desenha). Site em português, preços em reais, pré-lançamento.
+
+## O que a loja vende
+
+- Camisetas oversized em 100% algodão penteado, 210 g/m², lavagem enzimática. Bases branca e preta, tamanhos P a GG.
+- Coleção: Oversized Off Line (R$ 109,90), Oversized Sol a Sol (R$ 109,90), Essencial Preta (R$ 89,90), Essencial Branca (R$ 89,90).
+- Estúdio: criar a estampa na hora (R$ 129,90) ou descrever a ideia para a marca desenhar (R$ 149,90).
+- Frete grátis a partir de R$ 250; Pix ou cartão em até 3x; troca em 30 dias.
+
+## Páginas
+
+- [Início e coleção](https://dipolo-gif.github.io/doavesso/#colecao): catálogo com filtros e busca.
+- [Estúdio](https://dipolo-gif.github.io/doavesso/#estudio): editor de estampas com prévia na camiseta.
+- [Sobre](https://dipolo-gif.github.io/doavesso/#sobre): a marca.
+
+## Como comprar
+
+Escolha o produto e o tamanho, adicione à sacola e finalize com nome, e-mail e endereço. Contas são opcionais: com login (e-mail e senha ou Google) o cliente acompanha os pedidos e guarda o endereço. O pedido recebe um código (AV-…) consultável com o e-mail em "Meus pedidos".
+
+## Observações
+
+- Pré-lançamento: pedidos são registrados, mas ainda não há cobrança.
+- A prévia da estampa é ilustrativa, não é arquivo técnico de impressão.
