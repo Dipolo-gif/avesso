@@ -1,0 +1,2 @@
+/* One transparent wordmark: black/cobalt on light surfaces, white on cobalt. */
+.footer-brand .wordmark img{filter:brightness(0) invert(1)}

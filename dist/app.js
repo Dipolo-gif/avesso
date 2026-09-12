@@ -18,7 +18,7 @@ function renderCatalog(){
 renderCatalog();
 if(online())fetchProducts().then(list=>{if(list.length){setProducts(list);renderCatalog();cart=normalizeCart(cart);updateCartCount();}}).catch(()=>{});
 
-const CART_KEY='doavesso.cart.v1',ORDERS_KEY='doavesso.orders.v1';
+const CART_KEY='duavesso.cart.v1',ORDERS_KEY='duavesso.orders.v1';
 function readStored(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}}
 let cart=normalizeCart(readStored(CART_KEY,[]));
 let orders=readStored(ORDERS_KEY,[]);
@@ -44,7 +44,7 @@ $('.search-toggle').addEventListener('click',()=>{$('.search-row').hidden=false;
 
 function showProduct(id){
  const p=PRODUCTS.find(p=>p.id===id);if(!p)return;
- $('#product-detail').innerHTML=`<div class="detail-layout"><div class="detail-visual"><div class="product-visual">${teePicture(p.base,p.name,'(max-width:700px) 94vw, 450px')}${graphicHTML(p)}</div></div><div class="detail-copy"><span class="eyebrow">DOAVESSO / ${p.category==='graphic'?'ESTAMPADAS':'ESSENCIAIS'}</span><h2>${p.name}</h2><div class="price">${money(p.price)}</div><p class="installments">ou ${INSTALLMENTS}x de ${money(installment(p.price))} sem juros</p><p>${p.description}</p><p><i class="color-dot" style="background:${p.base==='black'?'#28292b':'#fafafa'}"></i> ${p.color}</p><span style="font-size:14px">Escolha seu tamanho</span><div class="size-options" role="group" aria-label="Tamanho da camiseta">${SIZES.map(s=>`<button data-size="${s}" aria-pressed="false">${s}</button>`).join('')}</div><button class="text-link size-guide-button">Guia de medidas ↗</button><button class="button button-blue" id="add-product" disabled>Selecione um tamanho <span>＋</span></button><ul class="trust-row"><li>Frete grátis a partir de ${money(FREE_SHIPPING_MIN)}</li><li>Troca fácil em 30 dias</li><li>Pix ou cartão em até ${INSTALLMENTS}x</li></ul><dl class="specs"><div><dt>Tecido</dt><dd>${p.fabric}</dd></div><div><dt>Acabamento</dt><dd>${p.finish}</dd></div>${p.print?`<div><dt>Estampa</dt><dd>${p.print}</dd></div>`:''}<div><dt>Caimento</dt><dd>${p.fit}</dd></div><div><dt>Cuidados</dt><dd>${p.care}</dd></div></dl><p class="helper">Imagem, preço e características para demonstração.</p></div></div>`;
+ $('#product-detail').innerHTML=`<div class="detail-layout"><div class="detail-visual"><div class="product-visual">${teePicture(p.base,p.name,'(max-width:700px) 94vw, 450px')}${graphicHTML(p)}</div></div><div class="detail-copy"><span class="eyebrow">DUAVESSO / ${p.category==='graphic'?'ESTAMPADAS':'ESSENCIAIS'}</span><h2>${p.name}</h2><div class="price">${money(p.price)}</div><p class="installments">ou ${INSTALLMENTS}x de ${money(installment(p.price))} sem juros</p><p>${p.description}</p><p><i class="color-dot" style="background:${p.base==='black'?'#28292b':'#fafafa'}"></i> ${p.color}</p><span style="font-size:14px">Escolha seu tamanho</span><div class="size-options" role="group" aria-label="Tamanho da camiseta">${SIZES.map(s=>`<button data-size="${s}" aria-pressed="false">${s}</button>`).join('')}</div><button class="text-link size-guide-button">Guia de medidas ↗</button><button class="button button-blue" id="add-product" disabled>Selecione um tamanho <span>＋</span></button><ul class="trust-row"><li>Frete grátis a partir de ${money(FREE_SHIPPING_MIN)}</li><li>Troca fácil em 30 dias</li><li>Pix ou cartão em até ${INSTALLMENTS}x</li></ul><dl class="specs"><div><dt>Tecido</dt><dd>${p.fabric}</dd></div><div><dt>Acabamento</dt><dd>${p.finish}</dd></div>${p.print?`<div><dt>Estampa</dt><dd>${p.print}</dd></div>`:''}<div><dt>Caimento</dt><dd>${p.fit}</dd></div><div><dt>Cuidados</dt><dd>${p.care}</dd></div></dl><p class="helper">Imagem, preço e características para demonstração.</p></div></div>`;
  let selected='';
  $$('[data-size]',$('#product-detail')).forEach(b=>b.addEventListener('click',()=>{selected=b.dataset.size;$$('[data-size]',$('#product-detail')).forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#add-product').disabled=false;$('#add-product').innerHTML='Adicionar à sacola <span>＋</span>';}));
  $('#add-product').addEventListener('click',()=>{if(addCatalogItem(p.id,selected)){closeDialog($('#product-dialog'));showCart();}});
@@ -177,8 +177,8 @@ function renderDesign(){
  const hasText=drawPrint(ctx,d,true);
  if(d.mode==='brief')canvas.setAttribute('aria-label',`Prévia: camiseta ${colorName(d)}, tamanho ${d.size}, área reservada para a estampa descrita`);
  else canvas.setAttribute('aria-label',`Prévia: camiseta ${colorName(d)}, tamanho ${d.size}${hasText?`, texto ${d.text.replace(/\n/g,' ')}`:''}${uploadImage?', com imagem personalizada':''}`);
- document.dispatchEvent(new CustomEvent('doavesso:design',{detail:d}));
- if(d.garment && window.doavessoStudio.capturePreview && !window.doavessoStudio.is3DActive?.())ctx.drawImage(window.doavessoStudio.capturePreview(),0,0,1000,1000);
+ document.dispatchEvent(new CustomEvent('duavesso:design',{detail:d}));
+ if(d.garment && window.duavessoStudio.capturePreview && !window.duavessoStudio.is3DActive?.())ctx.drawImage(window.duavessoStudio.capturePreview(),0,0,1000,1000);
 }
 // Desenha só a estampa (texto/imagem ou o marcador do briefing) em um contexto 1000×1000.
 // Com placed=true aplica posição/rotação/escala como na prévia; senão, centrada e sem transformação (textura 3D).
@@ -200,7 +200,7 @@ function drawPrint(c,d,placed){
  }
  c.restore();return hasText;
 }
-window.doavessoStudio={getDesign,drawPrint:(c,d)=>drawPrint(c,d,false),ready:()=>readyDesign,artworkVersion:()=>uploadGeneration};
+window.duavessoStudio={getDesign,drawPrint:(c,d)=>drawPrint(c,d,false),ready:()=>readyDesign,artworkVersion:()=>uploadGeneration};
 function drawBriefPlaceholder(ctx,d,width,height){
  const ink=d.color==='white'?'#1737bc':'#f7f8f9';
  ctx.strokeStyle=ink;ctx.lineWidth=3;ctx.setLineDash([14,10]);ctx.strokeRect(-width/2,-height/2,width,height);ctx.setLineDash([]);
@@ -223,13 +223,13 @@ $('#design-upload').addEventListener('change',async e=>{
  try{const url=await readAsDataURL(file);const original=await loadImage(url);if(original.width*original.height>40000000)throw new Error('Imagem muito grande. Use uma versão com até 40 megapixels.');const temp=document.createElement('canvas');const ratio=Math.min(1,700/Math.max(original.width,original.height));temp.width=Math.round(original.width*ratio);temp.height=Math.round(original.height*ratio);temp.getContext('2d').drawImage(original,0,0,temp.width,temp.height);const data=temp.toDataURL('image/webp',.85),image=await loadImage(data);if(generation!==uploadGeneration)return;uploadData=data;uploadImage=image;$('#remove-upload').hidden=false;$('#upload-status').textContent=`${file.name} · imagem pronta`;renderDesign();}catch(error){if(generation===uploadGeneration){$('#upload-status').textContent=error.message||'Não foi possível ler esse arquivo. Escolha outra imagem.';e.target.value='';}}
 });
 $('#reset-design').addEventListener('click',()=>{for(const [key,value] of Object.entries(designDefaults))$(`#design-${key}`).value=value;$('#brief-count').textContent='0';syncSwatches();clearUpload();setMode('create');toast('Estúdio pronto para uma nova ideia.');});
-$('#download-design').addEventListener('click',async()=>{await readyDesign;if(!designReady)return;renderDesign();const source=window.doavessoStudio.capturePreview?.()||canvas;source.toBlob(blob=>{if(!blob){toast('Não foi possível gerar a prévia. Tente novamente.');return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='doavesso-minha-camiseta.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},'image/png');});
+$('#download-design').addEventListener('click',async()=>{await readyDesign;if(!designReady)return;renderDesign();const source=window.duavessoStudio.capturePreview?.()||canvas;source.toBlob(blob=>{if(!blob){toast('Não foi possível gerar a prévia. Tente novamente.');return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='duavesso-minha-camiseta.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},'image/png');});
 $('#design-form').addEventListener('submit',async e=>{
  e.preventDefault();await readyDesign;if(!designReady)return;
  const d=getDesign();
  if(d.mode==='brief'){if(d.brief.length<10){toast('Descreva sua ideia com pelo menos 10 caracteres para a equipe entender.');$('#design-brief').focus();return;}}
  else if(!d.text.trim()&&!uploadImage){toast('Adicione um texto ou uma imagem à sua estampa.');$('#design-text').focus();return;}
- renderDesign();const thumb=document.createElement('canvas');thumb.width=500;thumb.height=500;thumb.getContext('2d').drawImage(window.doavessoStudio.capturePreview?.()||canvas,0,0,500,500);
+ renderDesign();const thumb=document.createElement('canvas');thumb.width=500;thumb.height=500;thumb.getContext('2d').drawImage(window.duavessoStudio.capturePreview?.()||canvas,0,0,500,500);
  const design=d.mode==='brief'?{mode:'brief',color:d.color,garment:d.garment,size:d.size,brief:d.brief,scale:d.scale,x:d.x,y:d.y,rotation:d.rotation}:{...d,brief:undefined,image:uploadData};
  const item={id:'custom',key:`custom-${crypto.randomUUID()}`,name:CUSTOM[d.mode].name,category:'custom',base:d.color,color:garmentLabel(design),size:d.size,price:CUSTOM[d.mode].price,preview:thumb.toDataURL('image/jpeg',.85),design};
  try{cart=addItem(cart,item);saveCart();showCart();}catch(error){toast(error.message);}
@@ -238,7 +238,7 @@ $('#design-form').addEventListener('submit',async e=>{
 function route(){
  const hash=location.hash||'#inicio',studio=hash==='#estudio';
  $('#shop-view').hidden=studio;$('#studio-view').hidden=!studio;document.documentElement.classList.toggle('studio',studio);
- document.title=studio?'Crie sua camiseta personalizada — doavesso Studio':'doavesso — Camisetas oversized e estampas personalizadas';
+ document.title=studio?'Crie sua camiseta personalizada — duavesso Studio':'duavesso — Camisetas oversized e estampas personalizadas';
  if(hash.startsWith('#produto-'))showProduct(hash.slice(9));
  if(studio){window.scrollTo({top:0,behavior:'instant'});renderDesign();}
  else if(['#inicio','#colecao','#sobre'].includes(hash))requestAnimationFrame(()=>$(hash).scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
@@ -257,7 +257,7 @@ function renderAuthState(){
  if(user)$('#open-account').textContent=`Olá, ${firstName(user)}`;
  $('#mobile-account').textContent=user?'Minha conta':'Entrar';
 }
-window.addEventListener('doavesso:auth',()=>{profile=null;renderAuthState();});
+window.addEventListener('duavesso:auth',()=>{profile=null;renderAuthState();});
 function setAuthStatus(message,kind=''){const el=$('#auth-status');el.textContent=message;el.className=`auth-status ${kind}`;}
 function showAuthTab(tab){
  $$('[data-auth-tab]').forEach(b=>{const on=b.dataset.authTab===tab;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on));});
@@ -280,7 +280,7 @@ $('#login-form').addEventListener('submit',e=>{
 });
 $('#signup-form').addEventListener('submit',e=>{
  e.preventDefault();const form=e.target;if(!form.reportValidity())return;
- busy(form,async()=>{const result=await signUp(form.elements.namedItem('email').value.trim(),form.elements.namedItem('password').value,form.elements.namedItem('name').value.trim());form.reset();if(result.confirmed){closeDialog($('#auth-dialog'));toast('Conta criada. Bem-vindo à doavesso.');}else setAuthStatus('Conta criada! Enviamos um e-mail de confirmação — abra o link para ativar e depois entre aqui.','ok');});
+ busy(form,async()=>{const result=await signUp(form.elements.namedItem('email').value.trim(),form.elements.namedItem('password').value,form.elements.namedItem('name').value.trim());form.reset();if(result.confirmed){closeDialog($('#auth-dialog'));toast('Conta criada. Bem-vindo à duavesso.');}else setAuthStatus('Conta criada! Enviamos um e-mail de confirmação — abra o link para ativar e depois entre aqui.','ok');});
 });
 $('#forgot-password').addEventListener('click',async()=>{
  const email=$('#login-form input[name=email]').value.trim();
@@ -308,7 +308,7 @@ function maskPhone(s){s=s.replace(/\D/g,'').slice(0,11);if(s.length<=10)return s
 function validCPF(cpf){cpf=cpf.replace(/\D/g,'');if(cpf.length!==11||/^(\d)\1{10}$/.test(cpf))return false;let s=0;for(let i=0;i<9;i++)s+=+cpf[i]*(10-i);let d=11-s%11;if(d>=10)d=0;if(d!==+cpf[9])return false;s=0;for(let i=0;i<10;i++)s+=+cpf[i]*(11-i);d=11-s%11;if(d>=10)d=0;return d===+cpf[10];}
 function resizeAvatar(src){return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>{const size=200,c=document.createElement('canvas');c.width=c.height=size;const ctx=c.getContext('2d');const scale=Math.max(size/img.width,size/img.height),w=img.width*scale,h=img.height*scale;ctx.drawImage(img,(size-w)/2,(size-h)/2,w,h);resolve(c.toDataURL('image/webp',.82));};img.onerror=()=>reject(new Error('Não foi possível ler essa imagem.'));img.src=src;});}
 async function loadCities(uf,cityInput,keep){
- const dl=$('#doavesso-cities');if(dl)dl.innerHTML='';
+ const dl=$('#duavesso-cities');if(dl)dl.innerHTML='';
  cityInput.disabled=false;if(!keep)cityInput.value='';
  if(!uf)return;
  try{const res=await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`);if(!res.ok)return;const cities=await res.json();if(dl)dl.innerHTML=cities.map(c=>`<option value="${esc(c.nome)}"></option>`).join('');}catch{}
@@ -338,7 +338,7 @@ async function showAccount(tab){
   <label>Nome completo<input name="name" maxlength="80" value="${esc(p?.name||'')}" autocomplete="name" placeholder="Como no documento"></label>
   <div class="field-row"><label>Telefone<input name="phone" inputmode="tel" maxlength="16" value="${esc(p?.phone?maskPhone(p.phone):'')}" autocomplete="tel" placeholder="(00) 00000-0000"></label><label>CPF<input name="cpf" inputmode="numeric" maxlength="14" value="${esc(p?.cpf?maskCPF(p.cpf):'')}" autocomplete="off" placeholder="000.000.000-00"></label></div>
   <div class="field-row"><label>CEP<input name="cep" inputmode="numeric" maxlength="9" value="${esc(p?.cep||'')}" autocomplete="postal-code" placeholder="00000-000"></label><label>País<select name="country"><option value="BR"${(p?.country||'BR')==='BR'?' selected':''}>Brasil</option></select></label></div>
-  <div class="field-row"><label>Estado<select name="state"><option value="">Selecione…</option>${UF_LIST.map(([s,n])=>`<option value="${s}"${p?.state===s?' selected':''}>${esc(n)}</option>`).join('')}</select></label><label>Cidade<input name="city" list="doavesso-cities" maxlength="80" value="${esc(p?.city||'')}" autocomplete="address-level2" placeholder="${cityEnabled?'Sua cidade':'Escolha o estado primeiro'}"${cityEnabled?'':' disabled'}><datalist id="doavesso-cities"></datalist></label></div>
+  <div class="field-row"><label>Estado<select name="state"><option value="">Selecione…</option>${UF_LIST.map(([s,n])=>`<option value="${s}"${p?.state===s?' selected':''}>${esc(n)}</option>`).join('')}</select></label><label>Cidade<input name="city" list="duavesso-cities" maxlength="80" value="${esc(p?.city||'')}" autocomplete="address-level2" placeholder="${cityEnabled?'Sua cidade':'Escolha o estado primeiro'}"${cityEnabled?'':' disabled'}><datalist id="duavesso-cities"></datalist></label></div>
   <label>Endereço e número<input name="address" maxlength="160" value="${esc(p?.address||'')}" autocomplete="street-address" placeholder="Rua, número, complemento"></label>
   <div class="profile-actions"><button type="submit" class="button button-blue">Salvar dados <span>→</span></button>${user.provider==='google'?'':'<button type="button" class="text-button" id="change-password">Trocar senha</button>'}</div>
  </form>`;
@@ -386,7 +386,7 @@ handleAuthRedirect().then(outcome=>{
 if(document.modelContext?.registerTool){
  const lifecycle=new AbortController();
  const register=tool=>{try{Promise.resolve(document.modelContext.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch{}};
- register({name:'read_doavesso_catalog_and_cart',title:'Ver catálogo e sacola',description:'Consulta produtos, tamanhos e sacola atual.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute(input){if(!input||typeof input!=='object'||Object.keys(input).length)throw new Error('Informe um objeto vazio.');return {products:PRODUCTS.map(({id,name,price,color})=>({id,name,priceCents:price,color,sizes:SIZES})),cart:cart.map(({name,size,qty,price})=>({name,size,qty,priceCents:price})),totals:totals(cart)};}});
- register({name:'add_doavesso_catalog_item_to_cart',title:'Adicionar camiseta à sacola',description:'Adiciona uma unidade de um produto do catálogo à sacola local; não finaliza a compra.',inputSchema:{type:'object',properties:{productId:{type:'string',enum:PRODUCTS.map(p=>p.id)},size:{type:'string',enum:SIZES}},required:['productId','size'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute(input){if(!input||typeof input!=='object'||Object.keys(input).some(k=>!['productId','size'].includes(k)))throw new Error('Parâmetros inválidos.');if(!addCatalogItem(input.productId,input.size))throw new Error('Item não adicionado. Verifique os limites da sacola.');showCart();return {added:true,...totals(cart)};}});
+ register({name:'read_duavesso_catalog_and_cart',title:'Ver catálogo e sacola',description:'Consulta produtos, tamanhos e sacola atual.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute(input){if(!input||typeof input!=='object'||Object.keys(input).length)throw new Error('Informe um objeto vazio.');return {products:PRODUCTS.map(({id,name,price,color})=>({id,name,priceCents:price,color,sizes:SIZES})),cart:cart.map(({name,size,qty,price})=>({name,size,qty,priceCents:price})),totals:totals(cart)};}});
+ register({name:'add_duavesso_catalog_item_to_cart',title:'Adicionar camiseta à sacola',description:'Adiciona uma unidade de um produto do catálogo à sacola local; não finaliza a compra.',inputSchema:{type:'object',properties:{productId:{type:'string',enum:PRODUCTS.map(p=>p.id)},size:{type:'string',enum:SIZES}},required:['productId','size'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute(input){if(!input||typeof input!=='object'||Object.keys(input).some(k=>!['productId','size'].includes(k)))throw new Error('Parâmetros inválidos.');if(!addCatalogItem(input.productId,input.size))throw new Error('Item não adicionado. Verifique os limites da sacola.');showCart();return {added:true,...totals(cart)};}});
  window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});
 }

@@ -5,7 +5,7 @@ const preview = $('#design-preview'), footer = $('.preview-footer');
 const canvas2d = $('#design-canvas'), form = $('#design-form');
 const SWATCHES = [
   ['Branco giz','#f2f2ef','white'], ['Preto lavado','#15161a','black'],
-  ['Off-white','#e9e4d8'], ['Cinza','#9a9da3'], ['Azul doavesso','#1737bc'],
+  ['Off-white','#e9e4d8'], ['Cinza','#9a9da3'], ['Azul duavesso','#1737bc'],
   ['Verde musgo','#4c5a3f'], ['Vinho','#6b2233'], ['Areia','#cdb79a']
 ];
 const syncForm = () => form.dispatchEvent(new Event('input',{bubbles:true}));
@@ -48,7 +48,7 @@ function fabricNormal(T) {
 }
 
 async function createView(tools) {
-  const T=await import('./vendor/three.js'), studio=window.doavessoStudio;
+  const T=await import('./vendor/three.js'), studio=window.duavessoStudio;
   await studio.ready();
   // Resolve assets before allocating a WebGL context; failed requests remain retryable.
   const [gltf,ao]=await Promise.all([
@@ -146,7 +146,7 @@ async function createView(tools) {
     const [a,b,x,c,e,y]=printTransform(d);texture.matrix.set(a,b,x,c,e,y,0,0,1);
     tools.sync(d);requestRender();
   }
-  const onDesign=e=>applyDesign(e.detail);document.addEventListener('doavesso:design',onDesign);
+  const onDesign=e=>applyDesign(e.detail);document.addEventListener('duavesso:design',onDesign);
   applyDesign(current);
 
   const raycaster=new T.Raycaster(), ndc=new T.Vector2();

@@ -1,4 +1,4 @@
-# doavesso
+# duavesso
 
 > Loja brasileira de camisetas oversized em algodão pesado (210 g/m²), com estúdio online de camiseta personalizada para criar a própria estampa (texto, imagem ou uma ideia descrita, que a marca desenha). Site em português, preços em reais, pré-lançamento.
 
@@ -11,9 +11,9 @@
 
 ## Páginas
 
-- [Início e coleção](https://doavesso.vercel.app/#colecao): catálogo com filtros e busca.
-- [Estúdio](https://doavesso.vercel.app/#estudio): editor de estampas com prévia na camiseta.
-- [Sobre](https://doavesso.vercel.app/#sobre): a marca.
+- [Início e coleção](https://loja-duavesso.vercel.app/#colecao): catálogo com filtros e busca.
+- [Estúdio](https://loja-duavesso.vercel.app/#estudio): editor de estampas com prévia na camiseta.
+- [Sobre](https://loja-duavesso.vercel.app/#sobre): a marca.
 
 ## Como comprar
 

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://doavesso.vercel.app/sitemap.xml
+Sitemap: https://loja-duavesso.vercel.app/sitemap.xml

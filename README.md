@@ -1,8 +1,8 @@
-# DOAVESSO — loja de camisetas
+# DUAVESSO — loja de camisetas
 
 Loja em português com catálogo, filtro, busca, ordenação, tamanhos, sacola, checkout, histórico de pedidos e estúdio de estampas (criar na hora ou descrever a ideia). Site estático publicado no GitHub Pages; catálogo, pedidos, artes e newsletter no Supabase.
 
-- Site: https://doavesso.vercel.app/
+- Site: https://loja-duavesso.vercel.app/
 - Publicação: a cada push na `main`, o workflow roda `npm audit`, `npm test` e `npm run validate` e publica `dist/`.
 
 ## Executar
@@ -13,7 +13,7 @@ Node.js 22 ou mais recente. `npm start` abre o servidor local em http://127.0.0.
 
 ## Backend (Supabase)
 
-Projeto `doavesso` (região São Paulo). O navegador usa a chave pública de `dist/api.js`; o que ela pode fazer é definido pelas migrações em `supabase/migrations/`:
+Projeto `duavesso` (região São Paulo). O navegador usa a chave pública de `dist/api.js`; o que ela pode fazer é definido pelas migrações em `supabase/migrations/`:
 
 - `products` e `store_settings`: leitura pública (catálogo, frete, preços do estúdio).
 - `orders` e `order_items`: sem acesso direto; gravados só por `place_order()`, que recalcula preços e frete no servidor, valida tudo e limita 10 pedidos/hora por e-mail. Status inicial `aguardando_pagamento`.
@@ -58,4 +58,4 @@ WebMCP opcional: leitura de catálogo/sacola e adição de produto usam as mesma
 
 ## Prévia 3D (Three.js)
 
-No estúdio, o botão **Ver em 3D** troca a prévia 2D por uma camiseta em três dimensões (`dist/studio-3d.js`): a silhueta oversized é construída no próprio código (extrusão de uma forma com volume de corpo, gola em tubo) e a estampa desenhada pelo `app.js` (`window.doavessoStudio.drawPrint`) vira textura no peito, acompanhando posição, escala e rotação escolhidas. Gira sozinha (não com `prefers-reduced-motion`) e com arraste/setas. A biblioteca (`dist/vendor/three.js`, ~145 KB gzip, só as classes usadas) é carregada **apenas ao clicar** no botão; sem WebGL o botão não aparece e a prévia 2D segue como está. `npm run vendor` regenera os dois bundles (Motion e Three).
+No estúdio, o botão **Ver em 3D** troca a prévia 2D por uma camiseta em três dimensões (`dist/studio-3d.js`): a silhueta oversized é construída no próprio código (extrusão de uma forma com volume de corpo, gola em tubo) e a estampa desenhada pelo `app.js` (`window.duavessoStudio.drawPrint`) vira textura no peito, acompanhando posição, escala e rotação escolhidas. Gira sozinha (não com `prefers-reduced-motion`) e com arraste/setas. A biblioteca (`dist/vendor/three.js`, ~145 KB gzip, só as classes usadas) é carregada **apenas ao clicar** no botão; sem WebGL o botão não aparece e a prévia 2D segue como está. `npm run vendor` regenera os dois bundles (Motion e Three).

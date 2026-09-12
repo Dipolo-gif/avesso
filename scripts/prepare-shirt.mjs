@@ -44,7 +44,7 @@ doc.bufferViews=parts.map(part=>{const view={buffer:0,byteOffset:offset,byteLeng
 const packed=Buffer.alloc(offset);
 parts.forEach((part,i)=>part.copy(packed,doc.bufferViews[i].byteOffset));
 doc.buffers=[{byteLength:packed.length}];
-doc.asset.copyright='Copyright (c) 2024 Poimandres. MIT License. Adapted for doavesso.';
+doc.asset.copyright='Copyright (c) 2024 Poimandres. MIT License. Adapted for duavesso.';
 doc.nodes=[{mesh:0,name:'Tee'}];doc.scenes=[{nodes:[0]}];doc.scene=0;
 doc.meshes[0].name='Tee';
 doc.materials=[{name:'Cotton',doubleSided:true,pbrMetallicRoughness:{baseColorFactor:[1,1,1,1],metallicFactor:0,roughnessFactor:.92}}];

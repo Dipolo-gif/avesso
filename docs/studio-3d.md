@@ -1,4 +1,4 @@
-# Camiseta 3D — doavesso
+# Camiseta 3D — duavesso
 
 ## Modelo e origem
 
