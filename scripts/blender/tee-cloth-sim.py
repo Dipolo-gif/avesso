@@ -22,7 +22,7 @@ t0 = time.time()
 scene = bpy.context.scene
 for o in list(bpy.data.objects):
     bpy.data.objects.remove(o, do_unlink=True)
-FR_END = 64
+FR_END = 72
 scene.frame_start = 1; scene.frame_end = FR_END; scene.render.fps = 24
 
 def bez(p0, p1, p2, p3, n):
@@ -163,20 +163,20 @@ def ellipsoid(sx, sy, sz):
         bmesh.ops.create_uvsphere(b, u_segments=28, v_segments=18, radius=1.0)
         for v in b.verts: v.co = Vector((v.co.x*sx, v.co.y*sy, v.co.z*sz))
     return f
-def cylinder(r, L, sy=1.0):
+def cone(r_bottom, r_top, L, sy=1.0):
     def f(b):
-        bmesh.ops.create_cone(b, cap_ends=True, cap_tris=False, segments=28, radius1=r, radius2=r, depth=L)
+        bmesh.ops.create_cone(b, cap_ends=True, cap_tris=False, segments=28, radius1=r_bottom, radius2=r_top, depth=L)
         if sy != 1.0:
             for v in b.verts: v.co = Vector((v.co.x, v.co.y*sy, v.co.z))
     return f
 add_part('M_torso', ellipsoid(0.175, 0.110, 0.30), (0, 0, 0.36))
-add_part('M_hips', cylinder(0.17, 0.40, sy=0.105/0.17), (0, 0, 0.12))
-add_part('M_neck', cylinder(0.045, 0.24), (0, 0, 0.72))
+add_part('M_hips', cone(0.185, 0.165, 0.42, sy=0.62), (0, 0, 0.12))  # quadril um pouco mais largo embaixo: a barra cai em volta
+add_part('M_neck', cone(0.045, 0.045, 0.24), (0, 0, 0.72))
 for sgn in (1, -1):
     add_part('M_shoulder_%d' % sgn, ellipsoid(0.07, 0.072, 0.06), (sgn*0.145, 0, 0.60))
     J = Vector((sgn*0.17, 0, 0.62)); E = Vector((sgn*0.379, 0, 0.397))  # eixo do braço = eixo da manga
     d = (E - J); q = Vector((0, 0, 1)).rotation_difference(d.normalized())
-    add_part('M_arm_%d' % sgn, cylinder(0.047, d.length), (J + E) / 2, q)
+    add_part('M_arm_%d' % sgn, cone(0.047, 0.047, d.length), (J + E) / 2, q)
 for o in mann:
     for f, s in ((1, 0.05), (18, 1.0), (FR_END, 1.0)):
         o.scale = (s, s, s); o.keyframe_insert(data_path='scale', frame=f)
@@ -184,10 +184,10 @@ for o in mann:
 # ---- tecido ----
 cm = tee.modifiers.new('Cloth', 'CLOTH')
 st = cm.settings
-st.quality = 6; st.mass = 0.25
-st.tension_stiffness = 14; st.compression_stiffness = 14; st.shear_stiffness = 4; st.bending_stiffness = 0.16
-st.tension_damping = 5; st.compression_damping = 5; st.shear_damping = 5; st.bending_damping = 0.6
-st.air_damping = 1.5
+st.quality = 6; st.mass = 0.22
+st.tension_stiffness = 14; st.compression_stiffness = 14; st.shear_stiffness = 4; st.bending_stiffness = 0.2
+st.tension_damping = 5; st.compression_damping = 5; st.shear_damping = 5; st.bending_damping = 0.7
+st.air_damping = 1.8
 st.vertex_group_mass = 'pin'; st.pin_stiffness = 1.0
 cs = cm.collision_settings
 cs.use_collision = True; cs.distance_min = 0.005; cs.collision_quality = 3; cs.friction = 8
