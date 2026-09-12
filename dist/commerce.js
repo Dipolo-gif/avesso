@@ -11,6 +11,8 @@ export const INSTALLMENTS=3;
 export const installment=cents=>Math.ceil(cents/INSTALLMENTS);
 export const CUSTOM={create:{name:'Sua camiseta · Studio',price:12990},brief:{name:'Sua camiseta · Estampa sob medida',price:14990}};
 export const customMode=design=>design?.mode==='brief'?'brief':'create';
+// Rótulo da cor no carrinho/pedido: base do catálogo ou a cor livre escolhida no estúdio 3D.
+export const garmentLabel=design=>design?.garment?`Cor personalizada ${design.garment}`:design?.color==='black'?'Preto lavado':'Branco giz';
 export const money=cents=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(cents/100);
 export const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const FREE_SHIPPING_MIN=25000;
@@ -42,7 +44,7 @@ export function sanitizeDesign(d){
  const mode=d.mode==='brief'?'brief':'create';
  const str=(v,max)=>typeof v==='string'?v.slice(0,max):'';
  const num=(v,min,max,fallback)=>Number.isFinite(v)?Math.min(max,Math.max(min,v)):fallback;
- const base={mode,color:['white','black'].includes(d.color)?d.color:'white',size:SIZES.includes(d.size)?d.size:'M',scale:num(d.scale,45,100,80),y:num(d.y,-15,15,0),rotation:num(d.rotation,-15,15,0)};
+ const base={mode,color:['white','black'].includes(d.color)?d.color:'white',garment:/^#[0-9a-f]{6}$/i.test(d.garment)?d.garment.toLowerCase():'',size:SIZES.includes(d.size)?d.size:'M',scale:num(d.scale,45,100,80),x:num(d.x,-30,30,0),y:num(d.y,-25,25,0),rotation:num(d.rotation,-15,15,0)};
  if(mode==='brief')return {...base,brief:str(d.brief,400)};
  return {...base,text:str(d.text,70),font:['condensed','sans','serif'].includes(d.font)?d.font:'condensed',ink:/^#[0-9a-f]{6}$/i.test(d.ink)?d.ink:'#1737bc',image:validImageURL(d.image)?d.image:null};
 }
@@ -52,7 +54,7 @@ export function normalizeCart(value){
   if(!x||!SIZES.includes(x.size)||!Number.isInteger(x.qty)||x.qty<1||x.qty>10)return [];
   const p=PRODUCTS.find(p=>p.id===x.id);
   if(p)return [{...p,key:`${p.id}-${x.size}`,size:x.size,qty:x.qty}];
-  if(x.id==='custom'&&typeof x.key==='string'&&/^custom-[\w-]+$/.test(x.key)&&['white','black'].includes(x.base)&&validImageURL(x.preview)){const design=sanitizeDesign(x.design),mode=customMode(design);return [{id:'custom',key:x.key,name:CUSTOM[mode].name,category:'custom',base:x.base,color:x.base==='white'?'Branco giz':'Preto lavado',size:x.size,qty:x.qty,price:CUSTOM[mode].price,preview:x.preview,design}];}
+  if(x.id==='custom'&&typeof x.key==='string'&&/^custom-[\w-]+$/.test(x.key)&&['white','black'].includes(x.base)&&validImageURL(x.preview)){const design=sanitizeDesign(x.design),mode=customMode(design);return [{id:'custom',key:x.key,name:CUSTOM[mode].name,category:'custom',base:x.base,color:garmentLabel({...design,color:x.base}),size:x.size,qty:x.qty,price:CUSTOM[mode].price,preview:x.preview,design}];}
   return [];
  });
 }

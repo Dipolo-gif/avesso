@@ -1,4 +1,4 @@
-import {PRODUCTS,SIZES,CUSTOM,FREE_SHIPPING_MIN,INSTALLMENTS,installment,customMode,shippingSuggestion,setProducts,money,escapeHTML as esc,totals,addItem,changeQuantity,normalizeCart,validImageURL} from './commerce.js';
+import {PRODUCTS,SIZES,CUSTOM,FREE_SHIPPING_MIN,INSTALLMENTS,installment,customMode,shippingSuggestion,setProducts,money,escapeHTML as esc,totals,addItem,changeQuantity,normalizeCart,validImageURL,garmentLabel} from './commerce.js';
 import {online,fetchProducts,rpc,uploadDesign,dataURLToBlob,getUser,signIn,signUp,signOut,resetPassword,updatePassword,signInWithGoogle,handleAuthRedirect,fetchProfile,updateProfile,fetchMyOrders} from './api.js';
 const $=(selector,root=document)=>root.querySelector(selector);
 const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
@@ -149,7 +149,7 @@ const imageCache={};
 function loadImage(src){return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('Não foi possível carregar a imagem.'));img.src=src;});}
 function readAsDataURL(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error('Não foi possível ler esse arquivo. Escolha outra imagem.'));r.readAsDataURL(file);});}
 let uploadImage=null,uploadData=null,uploadGeneration=0,designReady=false;
-const designDefaults={color:'white',size:'M',text:'DO MEU\nJEITO.',font:'condensed',ink:'#1737bc',scale:80,y:0,rotation:0,brief:''};
+const designDefaults={color:'white',garment:'',size:'M',text:'DO MEU\nJEITO.',font:'condensed',ink:'#1737bc',scale:80,x:0,y:0,rotation:0,brief:''};
 let designMode='create';
 function setMode(mode){
  designMode=mode;
@@ -166,22 +166,23 @@ $$('[data-mode]').forEach(b=>b.addEventListener('click',()=>{setMode(b.dataset.m
 $$('.starter').forEach(b=>b.addEventListener('click',()=>{$('#design-text').value=b.dataset.starter;renderDesign();$('#design-text').focus();}));
 function syncSwatches(){const ink=$('#design-ink').value.toLowerCase();$$('.swatch[data-ink]').forEach(b=>{const on=b.dataset.ink===ink;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});}
 $$('.swatch[data-ink]').forEach(b=>b.addEventListener('click',()=>{$('#design-ink').value=b.dataset.ink;syncSwatches();renderDesign();}));
-function getDesign(){return {mode:designMode,color:$('#design-color').value,size:$('#design-size').value,text:$('#design-text').value,font:$('#design-font').value,ink:$('#design-ink').value,scale:Number($('#design-scale').value),y:Number($('#design-y').value),rotation:Number($('#design-rotation').value),brief:$('#design-brief').value.trim()};}
+function getDesign(){return {mode:designMode,color:$('#design-color').value,garment:$('#design-garment').value,size:$('#design-size').value,text:$('#design-text').value,font:$('#design-font').value,ink:$('#design-ink').value,scale:Number($('#design-scale').value),x:Number($('#design-x').value),y:Number($('#design-y').value),rotation:Number($('#design-rotation').value),brief:$('#design-brief').value.trim()};}
+const colorName=d=>d.garment?`cor personalizada ${d.garment}`:d.color==='white'?'branca':'preta';
 const fontFamily={condensed:'"Barlow Condensed", Impact, sans-serif',sans:'Manrope, Arial, sans-serif',serif:'Georgia, serif'};
 function renderDesign(){
  const d=getDesign();
- $('#scale-output').textContent=`${d.scale}%`;$('#position-output').textContent=d.y===0?'Centro':d.y<0?'Mais acima':'Mais abaixo';$('#rotation-output').textContent=`${d.rotation}°`;
+ $('#scale-output').textContent=`${d.scale}%`;$('#position-output').textContent=d.y===0?'Centro':d.y<0?'Mais acima':'Mais abaixo';$('#x-output').textContent=d.x===0?'Centro':d.x<0?'Para a esquerda':'Para a direita';$('#rotation-output').textContent=`${d.rotation}°`;
  if(!imageCache[d.color])return;
  ctx.clearRect(0,0,1000,1000);ctx.drawImage(imageCache[d.color],0,0,1000,1000);
  const hasText=drawPrint(ctx,d,true);
- if(d.mode==='brief')canvas.setAttribute('aria-label',`Prévia: camiseta ${d.color==='white'?'branca':'preta'}, tamanho ${d.size}, área reservada para a estampa descrita`);
- else canvas.setAttribute('aria-label',`Prévia: camiseta ${d.color==='white'?'branca':'preta'}, tamanho ${d.size}${hasText?`, texto ${d.text.replace(/\n/g,' ')}`:''}${uploadImage?', com imagem personalizada':''}`);
+ if(d.mode==='brief')canvas.setAttribute('aria-label',`Prévia: camiseta ${colorName(d)}, tamanho ${d.size}, área reservada para a estampa descrita`);
+ else canvas.setAttribute('aria-label',`Prévia: camiseta ${colorName(d)}, tamanho ${d.size}${hasText?`, texto ${d.text.replace(/\n/g,' ')}`:''}${uploadImage?', com imagem personalizada':''}`);
  document.dispatchEvent(new CustomEvent('doavesso:design',{detail:d}));
 }
 // Desenha só a estampa (texto/imagem ou o marcador do briefing) em um contexto 1000×1000.
 // Com placed=true aplica posição/rotação/escala como na prévia; senão, centrada e sem transformação (textura 3D).
 function drawPrint(c,d,placed){
- c.save();if(placed){c.translate(500,485+d.y*3.3);c.rotate(d.rotation*Math.PI/180);c.scale(d.scale/100,d.scale/100);}else c.translate(500,500);
+ c.save();if(placed){c.translate(500+(d.x||0)*3.3,485+d.y*3.3);c.rotate(d.rotation*Math.PI/180);c.scale(d.scale/100,d.scale/100);}else c.translate(500,500);
  const width=300,height=330;
  if(d.mode==='brief'){drawBriefPlaceholder(c,d,width,height);c.restore();return false;}
  c.beginPath();c.rect(-width/2,-height/2,width,height);c.clip();
@@ -210,6 +211,7 @@ function drawBriefPlaceholder(ctx,d,width,height){
 const readyDesign=Promise.all([loadImage('assets/tee-white-1000.webp'),loadImage('assets/tee-black-1000.webp'),document.fonts.ready]).then(([white,black])=>{imageCache.white=white;imageCache.black=black;designReady=true;renderDesign();}).catch(()=>toast('Não foi possível carregar a base da camiseta. Atualize a página para tentar de novo.'));
 $('#design-form').addEventListener('input',e=>{if(e.target.id==='design-brief')$('#brief-count').textContent=e.target.value.length;if(e.target.id==='design-ink')syncSwatches();if(e.target.type!=='file')renderDesign();});
 $('#design-form').addEventListener('change',e=>{if(e.target.type!=='file')renderDesign();});
+$('#design-color').addEventListener('change',()=>{$('#design-garment').value='';});
 function clearUpload(){uploadGeneration++;uploadImage=null;uploadData=null;$('#design-upload').value='';$('#remove-upload').hidden=true;$('#upload-status').textContent='Use uma imagem sua ou que você tenha autorização para usar.';renderDesign();}
 $('#remove-upload').addEventListener('click',clearUpload);
 $('#design-upload').addEventListener('change',async e=>{
@@ -227,8 +229,8 @@ $('#design-form').addEventListener('submit',async e=>{
  if(d.mode==='brief'){if(d.brief.length<10){toast('Descreva sua ideia com pelo menos 10 caracteres para a equipe entender.');$('#design-brief').focus();return;}}
  else if(!d.text.trim()&&!uploadImage){toast('Adicione um texto ou uma imagem à sua estampa.');$('#design-text').focus();return;}
  renderDesign();const thumb=document.createElement('canvas');thumb.width=500;thumb.height=500;thumb.getContext('2d').drawImage(canvas,0,0,500,500);
- const design=d.mode==='brief'?{mode:'brief',color:d.color,size:d.size,brief:d.brief,scale:d.scale,y:d.y,rotation:d.rotation}:{...d,brief:undefined,image:uploadData};
- const item={id:'custom',key:`custom-${crypto.randomUUID()}`,name:CUSTOM[d.mode].name,category:'custom',base:d.color,color:d.color==='white'?'Branco giz':'Preto lavado',size:d.size,price:CUSTOM[d.mode].price,preview:thumb.toDataURL('image/jpeg',.85),design};
+ const design=d.mode==='brief'?{mode:'brief',color:d.color,garment:d.garment,size:d.size,brief:d.brief,scale:d.scale,x:d.x,y:d.y,rotation:d.rotation}:{...d,brief:undefined,image:uploadData};
+ const item={id:'custom',key:`custom-${crypto.randomUUID()}`,name:CUSTOM[d.mode].name,category:'custom',base:d.color,color:garmentLabel(design),size:d.size,price:CUSTOM[d.mode].price,preview:thumb.toDataURL('image/jpeg',.85),design};
  try{cart=addItem(cart,item);saveCart();showCart();}catch(error){toast(error.message);}
 });
 

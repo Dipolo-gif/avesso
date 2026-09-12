@@ -8,3 +8,4 @@ node_modules/
 *.p12
 .DS_Store
 Thumbs.db
+.claude/
