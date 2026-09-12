@@ -11,9 +11,9 @@
 
 ## Páginas
 
-- [Início e coleção](https://dipolo-gif.github.io/doavesso/#colecao): catálogo com filtros e busca.
-- [Estúdio](https://dipolo-gif.github.io/doavesso/#estudio): editor de estampas com prévia na camiseta.
-- [Sobre](https://dipolo-gif.github.io/doavesso/#sobre): a marca.
+- [Início e coleção](https://doavesso.vercel.app/#colecao): catálogo com filtros e busca.
+- [Estúdio](https://doavesso.vercel.app/#estudio): editor de estampas com prévia na camiseta.
+- [Sobre](https://doavesso.vercel.app/#sobre): a marca.
 
 ## Como comprar
 

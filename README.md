@@ -2,7 +2,7 @@
 
 Loja em português com catálogo, filtro, busca, ordenação, tamanhos, sacola, checkout, histórico de pedidos e estúdio de estampas (criar na hora ou descrever a ideia). Site estático publicado no GitHub Pages; catálogo, pedidos, artes e newsletter no Supabase.
 
-- Site: https://dipolo-gif.github.io/doavesso/
+- Site: https://doavesso.vercel.app/
 - Publicação: a cada push na `main`, o workflow roda `npm audit`, `npm test` e `npm run validate` e publica `dist/`.
 
 ## Executar

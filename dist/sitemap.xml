@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
-    <loc>https://dipolo-gif.github.io/doavesso/</loc>
+    <loc>https://doavesso.vercel.app/</loc>
     <lastmod>2026-09-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
-    <image:image><image:loc>https://dipolo-gif.github.io/doavesso/assets/editorial-1536.jpg</image:loc><image:title>doavesso — coleção essencial</image:title></image:image>
-    <image:image><image:loc>https://dipolo-gif.github.io/doavesso/assets/tee-white-1254.jpg</image:loc><image:title>Camiseta branca oversized</image:title></image:image>
-    <image:image><image:loc>https://dipolo-gif.github.io/doavesso/assets/tee-black-1254.jpg</image:loc><image:title>Camiseta preta oversized</image:title></image:image>
+    <image:image><image:loc>https://doavesso.vercel.app/assets/editorial-1536.jpg</image:loc><image:title>doavesso — coleção essencial</image:title></image:image>
+    <image:image><image:loc>https://doavesso.vercel.app/assets/tee-white-1254.jpg</image:loc><image:title>Camiseta branca oversized</image:title></image:image>
+    <image:image><image:loc>https://doavesso.vercel.app/assets/tee-black-1254.jpg</image:loc><image:title>Camiseta preta oversized</image:title></image:image>
   </url>
 </urlset>
