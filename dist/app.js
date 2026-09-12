@@ -178,6 +178,7 @@ function renderDesign(){
  if(d.mode==='brief')canvas.setAttribute('aria-label',`Prévia: camiseta ${colorName(d)}, tamanho ${d.size}, área reservada para a estampa descrita`);
  else canvas.setAttribute('aria-label',`Prévia: camiseta ${colorName(d)}, tamanho ${d.size}${hasText?`, texto ${d.text.replace(/\n/g,' ')}`:''}${uploadImage?', com imagem personalizada':''}`);
  document.dispatchEvent(new CustomEvent('doavesso:design',{detail:d}));
+ if(d.garment && window.doavessoStudio.capturePreview && !window.doavessoStudio.is3DActive?.())ctx.drawImage(window.doavessoStudio.capturePreview(),0,0,1000,1000);
 }
 // Desenha só a estampa (texto/imagem ou o marcador do briefing) em um contexto 1000×1000.
 // Com placed=true aplica posição/rotação/escala como na prévia; senão, centrada e sem transformação (textura 3D).
@@ -199,7 +200,7 @@ function drawPrint(c,d,placed){
  }
  c.restore();return hasText;
 }
-window.doavessoStudio={getDesign,drawPrint:(c,d)=>drawPrint(c,d,false),ready:()=>readyDesign};
+window.doavessoStudio={getDesign,drawPrint:(c,d)=>drawPrint(c,d,false),ready:()=>readyDesign,artworkVersion:()=>uploadGeneration};
 function drawBriefPlaceholder(ctx,d,width,height){
  const ink=d.color==='white'?'#1737bc':'#f7f8f9';
  ctx.strokeStyle=ink;ctx.lineWidth=3;ctx.setLineDash([14,10]);ctx.strokeRect(-width/2,-height/2,width,height);ctx.setLineDash([]);
@@ -222,13 +223,13 @@ $('#design-upload').addEventListener('change',async e=>{
  try{const url=await readAsDataURL(file);const original=await loadImage(url);if(original.width*original.height>40000000)throw new Error('Imagem muito grande. Use uma versão com até 40 megapixels.');const temp=document.createElement('canvas');const ratio=Math.min(1,700/Math.max(original.width,original.height));temp.width=Math.round(original.width*ratio);temp.height=Math.round(original.height*ratio);temp.getContext('2d').drawImage(original,0,0,temp.width,temp.height);const data=temp.toDataURL('image/webp',.85),image=await loadImage(data);if(generation!==uploadGeneration)return;uploadData=data;uploadImage=image;$('#remove-upload').hidden=false;$('#upload-status').textContent=`${file.name} · imagem pronta`;renderDesign();}catch(error){if(generation===uploadGeneration){$('#upload-status').textContent=error.message||'Não foi possível ler esse arquivo. Escolha outra imagem.';e.target.value='';}}
 });
 $('#reset-design').addEventListener('click',()=>{for(const [key,value] of Object.entries(designDefaults))$(`#design-${key}`).value=value;$('#brief-count').textContent='0';syncSwatches();clearUpload();setMode('create');toast('Estúdio pronto para uma nova ideia.');});
-$('#download-design').addEventListener('click',async()=>{await readyDesign;if(!designReady)return;renderDesign();canvas.toBlob(blob=>{if(!blob){toast('Não foi possível gerar a prévia. Tente novamente.');return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='doavesso-minha-camiseta.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},'image/png');});
+$('#download-design').addEventListener('click',async()=>{await readyDesign;if(!designReady)return;renderDesign();const source=window.doavessoStudio.capturePreview?.()||canvas;source.toBlob(blob=>{if(!blob){toast('Não foi possível gerar a prévia. Tente novamente.');return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='doavesso-minha-camiseta.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},'image/png');});
 $('#design-form').addEventListener('submit',async e=>{
  e.preventDefault();await readyDesign;if(!designReady)return;
  const d=getDesign();
  if(d.mode==='brief'){if(d.brief.length<10){toast('Descreva sua ideia com pelo menos 10 caracteres para a equipe entender.');$('#design-brief').focus();return;}}
  else if(!d.text.trim()&&!uploadImage){toast('Adicione um texto ou uma imagem à sua estampa.');$('#design-text').focus();return;}
- renderDesign();const thumb=document.createElement('canvas');thumb.width=500;thumb.height=500;thumb.getContext('2d').drawImage(canvas,0,0,500,500);
+ renderDesign();const thumb=document.createElement('canvas');thumb.width=500;thumb.height=500;thumb.getContext('2d').drawImage(window.doavessoStudio.capturePreview?.()||canvas,0,0,500,500);
  const design=d.mode==='brief'?{mode:'brief',color:d.color,garment:d.garment,size:d.size,brief:d.brief,scale:d.scale,x:d.x,y:d.y,rotation:d.rotation}:{...d,brief:undefined,image:uploadData};
  const item={id:'custom',key:`custom-${crypto.randomUUID()}`,name:CUSTOM[d.mode].name,category:'custom',base:d.color,color:garmentLabel(design),size:d.size,price:CUSTOM[d.mode].price,preview:thumb.toDataURL('image/jpeg',.85),design};
  try{cart=addItem(cart,item);saveCart();showCart();}catch(error){toast(error.message);}

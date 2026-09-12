@@ -1,5 +1,7 @@
 # Direção e imagens
 
+Para a camiseta interativa, origem da malha, licença, ajustes e reprodução do modelo, veja [Estúdio 3D](studio-3d.md).
+
 DOAVESSO: marca provisória de camisetas independentes. Fotografia editorial de concreto e algodão, tipografia Barlow Condensed para campanha e Manrope para interface. Paleta: azul #1737bc, tinta #161719, papel frio #f7f8f9, cinza #e9eaec e texto secundário #64666e. A página combina campanha fotográfica com catálogo acessível logo abaixo, cartões sem molduras e estúdio com prévia grande. Movimento: entrada suave da campanha, faixa tipográfica contínua, aproximação das peças no hover e abertura lateral da sacola. `prefers-reduced-motion` desliga movimento.
 
 Imagens geradas usando a ferramenta integrada image_gen. Originais em `assets-src/`:

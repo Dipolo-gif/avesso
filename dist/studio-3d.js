@@ -1,254 +1,220 @@
-// Prévia 3D do estúdio (Three.js). O botão "Ver em 3D" carrega vendor/three.js e o modelo
-// assets/tee.glb só quando clicado. A camiseta é um modelo de verdade: simulação de tecido feita
-// no Blender (painéis frente/costas costurados, manequim invisível, mangas em tubo, gola canelada,
-// caimento com dobras). A estampa desenhada pelo app.js (window.doavessoStudio.drawPrint) vira um
-// decalque projetado no tecido, que a pessoa arrasta direto na peça; a cor da peça é livre.
-const preview = document.getElementById('design-preview');
-const footer = document.querySelector('.preview-footer');
-const canvas2d = document.getElementById('design-canvas');
-const form = document.getElementById('design-form');
-
-function supportsWebGL() {
-  try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; }
-}
-
-const $ = (s, r = document) => r.querySelector(s);
-// Cores prontas da peça. As duas primeiras são as bases do catálogo (fotos da prévia 2D);
-// as outras (e o seletor livre) viram "cor personalizada" no pedido.
+// Lazy-loaded garment editor. Model provenance: assets/tee-LICENSE.txt.
+import {CHEST_Y, UNIT, printTransform, printUV, dragPosition} from './studio-placement.js';
+const $ = (s,r=document) => r.querySelector(s);
+const preview = $('#design-preview'), footer = $('.preview-footer');
+const canvas2d = $('#design-canvas'), form = $('#design-form');
 const SWATCHES = [
-  ['Branco giz', '#f2f2ef', 'white'], ['Preto lavado', '#15161a', 'black'],
-  ['Off-white', '#e9e4d8'], ['Cinza mescla', '#9a9da3'], ['Azul doavesso', '#1737bc'],
-  ['Verde musgo', '#4c5a3f'], ['Vinho', '#6b2233'], ['Areia', '#cdb79a']
+  ['Branco giz','#f2f2ef','white'], ['Preto lavado','#15161a','black'],
+  ['Off-white','#e9e4d8'], ['Cinza','#9a9da3'], ['Azul doavesso','#1737bc'],
+  ['Verde musgo','#4c5a3f'], ['Vinho','#6b2233'], ['Areia','#cdb79a']
 ];
-const luminance = hex => { const n = parseInt(hex.slice(1), 16); return 0.2126 * (n >> 16 & 255) + 0.7152 * (n >> 8 & 255) + 0.0722 * (n & 255); };
+const syncForm = () => form.dispatchEvent(new Event('input',{bubbles:true}));
 
-function setup() {
-  const button = document.createElement('button');
-  button.type = 'button'; button.className = 'text-button'; button.id = 'toggle-3d'; button.textContent = 'Ver em 3D ↻';
-  button.setAttribute('aria-pressed', 'false');
-  footer.insertBefore(button, footer.lastElementChild);
-  const label = footer.querySelector('span');
-  const label2d = label.textContent;
-  const tools = buildTools();
-  preview.appendChild(tools.el);
-  let view = null, active = false;
-
-  button.addEventListener('click', async () => {
-    if (!view) {
-      button.disabled = true; button.textContent = 'Carregando 3D…';
-      try { view = await createView(tools); }
-      catch (err) { console.error(err); button.textContent = '3D indisponível'; return; }
-      finally { button.disabled = false; }
-    }
-    active = !active;
-    view.setActive(active);
-    tools.el.hidden = !active;
-    canvas2d.style.visibility = active ? 'hidden' : '';
-    button.textContent = active ? 'Voltar à prévia 2D' : 'Ver em 3D ↻';
-    button.setAttribute('aria-pressed', String(active));
-    label.textContent = active ? 'PRÉVIA 3D · ARRASTE A ESTAMPA OU GIRE A PEÇA' : label2d;
-  });
-}
-
-// Barra de cor da peça (aparece sobre a prévia 3D). Escolher uma cor grava #design-garment e
-// ajusta a base clara/escura do catálogo (#design-color) pela luminância, para preço e prévia 2D.
 function buildTools() {
-  const el = document.createElement('div'); el.className = 'tee-tools'; el.hidden = true;
-  el.innerHTML = '<span class="tee-tools-label">Cor da peça</span><div class="tee-swatches" role="group" aria-label="Cor da camiseta"></div><label class="tee-custom">Outra <input type="color" value="#1737bc" aria-label="Escolher outra cor da camiseta"></label><span class="tee-hint">Arraste a estampa pela camiseta · roda do mouse sobre ela muda o tamanho · arraste fora dela para girar a peça</span>';
-  const row = $('.tee-swatches', el), custom = $('input[type=color]', el);
-  for (const [name, hex, base] of SWATCHES) {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'tee-swatch'; b.title = name; b.setAttribute('aria-label', name);
-    b.style.background = hex; b.dataset.hex = hex; if (base) b.dataset.base = base;
-    b.addEventListener('click', () => setGarment(hex, base));
-    row.appendChild(b);
+  const el=document.createElement('div'); el.className='tee-tools'; el.hidden=true;
+  el.innerHTML='<div class="tee-camera" role="group" aria-label="Vista da camiseta"><button type="button" data-view="front">Frente</button><button type="button" data-view="back">Costas</button><button type="button" data-view="detail">Detalhes</button></div><span class="tee-tools-label">Cor da peça</span><div class="tee-swatches" role="group" aria-label="Cor da camiseta"></div><label class="tee-custom">Outra <input type="color" value="#1737bc" aria-label="Escolher outra cor da camiseta"></label><span class="tee-hint">Puxe a estampa para mover · arraste o tecido para girar · use dois dedos para aproximar</span>';
+  const row=$('.tee-swatches',el), custom=$('input',el);
+  function setGarment(hex,base) {
+    $('#design-garment').value=base?'':hex.toLowerCase();
+    const n=parseInt(hex.slice(1),16), light=.2126*(n>>16&255)+.7152*(n>>8&255)+.0722*(n&255);
+    $('#design-color').value=base||(light>118?'white':'black'); syncForm();
   }
-  custom.addEventListener('input', e => setGarment(e.target.value, ''));
-  function setGarment(hex, base) {
-    const garment = $('#design-garment'), color = $('#design-color');
-    if (base) { garment.value = ''; color.value = base; }
-    else { garment.value = hex.toLowerCase(); color.value = luminance(hex) > 118 ? 'white' : 'black'; }
-    form.dispatchEvent(new Event('input', {bubbles: true}));
+  for(const [name,hex,base] of SWATCHES) {
+    const b=document.createElement('button'); b.type='button'; b.className='tee-swatch';
+    b.title=name; b.setAttribute('aria-label',name); b.style.background=hex;
+    b.dataset.hex=hex; if(base)b.dataset.base=base;
+    b.addEventListener('click',()=>setGarment(hex,base)); row.appendChild(b);
   }
-  function sync(d) {
-    const hex = (d.garment || (d.color === 'white' ? '#f2f2ef' : '#15161a')).toLowerCase();
-    for (const b of row.children) b.setAttribute('aria-pressed', String(b.dataset.hex === hex && !!b.dataset.base === !d.garment));
-    if (d.garment) custom.value = d.garment;
-  }
-  return {el, sync};
+  custom.addEventListener('input',e=>setGarment(e.target.value));
+  return {el, sync(d) {
+    const hex=d.garment||(d.color==='white'?'#f2f2ef':'#15161a');
+    for(const b of row.children)b.setAttribute('aria-pressed',String(b.dataset.hex===hex && Boolean(b.dataset.base)===!d.garment));
+    custom.value=hex;
+  }};
 }
 
-// Mapa de normais de tecido gerado em canvas: trama (fios cruzados) ou canelado (listras da gola).
-function makeFabricNormal(T, repeat, rib) {
-  const S = 256, c = document.createElement('canvas'); c.width = c.height = S;
-  const g = c.getContext('2d'), img = g.createImageData(S, S), d = img.data;
-  const h = (x, y) => {
-    if (rib) return Math.sin(x / S * Math.PI * 2 * 48) * 0.9;
-    const weave = Math.sin(x / S * Math.PI * 2 * 26) * 0.5 + Math.sin(y / S * Math.PI * 2 * 26 + 1.6) * 0.5;
-    const grain = Math.sin(x * 12.9898 + y * 78.233) * 0.5;
-    return weave * 0.7 + (grain - Math.floor(grain)) * 0.25;
-  };
-  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
-    const hl = h((x + S - 1) % S, y), hr = h((x + 1) % S, y), hu = h(x, (y + S - 1) % S), hd = h(x, (y + 1) % S);
-    const nx = hl - hr, ny = hu - hd, nz = 1, len = Math.hypot(nx, ny, nz), i = (y * S + x) * 4;
-    d[i] = (nx / len * 0.5 + 0.5) * 255; d[i + 1] = (ny / len * 0.5 + 0.5) * 255; d[i + 2] = (nz / len * 0.5 + 0.5) * 255; d[i + 3] = 255;
+function fabricNormal(T) {
+  const c=document.createElement('canvas'); c.width=c.height=128;
+  const ctx=c.getContext('2d'), pixels=ctx.createImageData(128,128);
+  for(let y=0;y<128;y++)for(let x=0;x<128;x++) {
+    const i=(y*128+x)*4;
+    pixels.data[i]=128+Math.sin(x*Math.PI/2)*27;
+    pixels.data[i+1]=128+Math.sin(y*Math.PI/2+(x%4)*.5)*27;
+    pixels.data[i+2]=252; pixels.data[i+3]=255;
   }
-  g.putImageData(img, 0, 0);
-  const tex = new T.CanvasTexture(c); tex.wrapS = tex.wrapT = T.RepeatWrapping; tex.repeat.set(repeat, repeat); tex.anisotropy = 4;
-  return tex;
-}
-
-// Sombra de contato: disco com gradiente radial, ancora a peça no "chão".
-function makeShadow(T) {
-  const S = 256, c = document.createElement('canvas'); c.width = c.height = S;
-  const g = c.getContext('2d'), grd = g.createRadialGradient(S / 2, S / 2, S * 0.04, S / 2, S / 2, S / 2);
-  grd.addColorStop(0, 'rgba(22,23,25,0.5)'); grd.addColorStop(0.5, 'rgba(22,23,25,0.2)'); grd.addColorStop(1, 'rgba(22,23,25,0)');
-  g.fillStyle = grd; g.fillRect(0, 0, S, S);
-  const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
+  ctx.putImageData(pixels,0,0);
+  const texture=new T.CanvasTexture(c); texture.wrapS=texture.wrapT=T.RepeatWrapping;
+  texture.repeat.set(12,12); return texture;
 }
 
 async function createView(tools) {
-  const T = await import('./vendor/three.js');
-  const studio = window.doavessoStudio;
+  const T=await import('./vendor/three.js'), studio=window.doavessoStudio;
   await studio.ready();
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Resolve assets before allocating a WebGL context; failed requests remain retryable.
+  const [gltf,ao]=await Promise.all([
+    new T.GLTFLoader().loadAsync(new URL('./assets/tee.glb',import.meta.url).href),
+    new T.TextureLoader().loadAsync(new URL('./assets/tee-ao.webp',import.meta.url).href)
+  ]);
+  const tee=gltf.scene.getObjectByName('Tee');
+  if(!tee?.isMesh)throw new Error('Modelo de camiseta inválido.');
+  const el=document.createElement('canvas'); el.className='preview-3d'; el.hidden=true; el.tabIndex=0;
+  el.setAttribute('role','img');
+  el.setAttribute('aria-label','Camiseta 3D. Arraste a estampa para mover e o tecido para girar. Setas giram a peça; Shift e setas movem a estampa.');
+  const renderer=new T.WebGLRenderer({canvas:el,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));
+  renderer.toneMapping=T.NeutralToneMapping;
+  renderer.toneMappingExposure=.58;
+  const scene=new T.Scene(), camera=new T.PerspectiveCamera(27,1,.05,20);
+  const pmrem=new T.PMREMGenerator(renderer), room=new T.RoomEnvironment();
+  const environment=pmrem.fromScene(room,.04); scene.environment=environment.texture;
+  pmrem.dispose(); room.dispose();
+  scene.add(new T.HemisphereLight(0xffffff,0x8c929a,.35));
+  const key=new T.DirectionalLight(0xffffff,1.25); key.position.set(-1.8,2,2.4); scene.add(key);
+  const fill=new T.DirectionalLight(0xffffff,.35); fill.position.set(1.8,.7,1); scene.add(fill);
+  const rim=new T.DirectionalLight(0xffffff,.55); rim.position.set(.6,1.4,-2); scene.add(rim);
+  const backLight=new T.DirectionalLight(0xffffff,.95); backLight.position.set(-1.8,1.6,-2.4); scene.add(backLight);
 
-  // Palco -------------------------------------------------------------------
-  const el = document.createElement('canvas');
-  el.className = 'preview-3d'; el.setAttribute('role', 'img');
-  el.setAttribute('aria-label', 'Prévia 3D da sua camiseta. Arraste a estampa para posicionar; arraste fora dela para girar a peça.');
-  el.hidden = true; el.tabIndex = 0;
-  preview.appendChild(el); preview.appendChild(tools.el); // barra de cores por cima do canvas
-  const renderer = new T.WebGLRenderer({canvas: el, antialias: true, alpha: true});
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.toneMapping = T.NeutralToneMapping; renderer.toneMappingExposure = 1.0; // Khronos PBR Neutral: cor fiel (e-commerce)
-  const scene = new T.Scene();
-  scene.environment = new T.PMREMGenerator(renderer).fromScene(new T.RoomEnvironment(), 0.04).texture;
-  scene.add(new T.HemisphereLight(0xffffff, 0xcfd2d8, 0.3));
-  const key = new T.DirectionalLight(0xffffff, 1.05); key.position.set(-1.2, 2.2, 2.4); scene.add(key);
-  const fill = new T.DirectionalLight(0xe9eeff, 0.3); fill.position.set(1.8, 0.6, 1.2); scene.add(fill);
-  const rim = new T.DirectionalLight(0xffffff, 0.55); rim.position.set(0.6, 1.4, -2.2); scene.add(rim);
-  const camera = new T.PerspectiveCamera(27, 1, 0.05, 20);
-  camera.position.set(0.16, 0.5, 1.78);
+  gltf.scene.updateMatrixWorld(true);
+  tee.geometry=tee.geometry.clone().applyMatrix4(tee.matrixWorld);
+  tee.position.set(0,0,0); tee.rotation.set(0,0,0); tee.scale.set(1,1,1);
+  const bounds=new T.Box3().setFromBufferAttribute(tee.geometry.attributes.position);
+  const center=bounds.getCenter(new T.Vector3());
+  tee.geometry.translate(-center.x,.36-center.y,-center.z);
+  scene.add(tee); tee.updateMatrixWorld(true);
+  const weave=fabricNormal(T); ao.flipY=false;
+  const cloth=new T.MeshPhysicalMaterial({color:0xf2f2ef,metalness:0,roughness:.94,
+    sheen:.14,sheenRoughness:1,envMapIntensity:.45,side:T.DoubleSide,
+    normalMap:weave,normalScale:new T.Vector2(.08,.08),aoMap:ao,aoMapIntensity:.8});
+  tee.material.dispose(); tee.material=cloth;
 
-  // Giro fluido: OrbitControls com inércia; gira sozinho devagar quando ninguém mexe.
-  const controls = new T.OrbitControls(camera, el);
-  controls.target.set(0, 0.395, 0);
-  controls.enableDamping = true; controls.dampingFactor = 0.07; controls.enablePan = false;
-  controls.minDistance = 1.05; controls.maxDistance = 3.0; controls.minPolarAngle = 0.85; controls.maxPolarAngle = 1.9;
-  controls.rotateSpeed = 0.85; controls.zoomSpeed = 0.7;
-  controls.autoRotate = !reduced; controls.autoRotateSpeed = 0.55; controls.update();
-  let idle = 0;
-  controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(idle); });
-  controls.addEventListener('end', () => { clearTimeout(idle); if (!reduced) idle = setTimeout(() => { controls.autoRotate = true; }, 4000); });
+  // Static front surface shares the garment's positions/normals. Moving a print only
+  // changes its UV transform: no remeshing or triangle allocation during a drag.
+  const front=tee.geometry.clone(), positions=front.attributes.position, normals=front.attributes.normal;
+  const index=front.index, frontIndices=[], planar=new Float32Array(positions.count*2);
+  for(let i=0;i<positions.count;i++){planar[i*2]=positions.getX(i);planar[i*2+1]=positions.getY(i);}
+  for(let i=0;i<index.count;i+=3) {
+    const ids=[index.getX(i),index.getX(i+1),index.getX(i+2)];
+    if(ids.every(k=>normals.getZ(k)>.12 && positions.getY(k)<.61 && positions.getY(k)>.04))frontIndices.push(...ids);
+  }
+  front.setIndex(frontIndices); front.setAttribute('uv1',front.attributes.uv.clone());
+  front.setAttribute('uv',new T.BufferAttribute(planar,2));
+  const texCanvas=document.createElement('canvas'); texCanvas.width=600; texCanvas.height=660;
+  const tctx=texCanvas.getContext('2d',{willReadFrequently:true});
+  const texture=new T.CanvasTexture(texCanvas); texture.colorSpace=T.SRGBColorSpace;
+  texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy()); texture.matrixAutoUpdate=false;
+  const printNormal=weave.clone(); printNormal.channel=1;
+  const printAO=ao.clone(); printAO.channel=1;
+  const printMaterial=new T.MeshStandardMaterial({map:texture,transparent:true,depthWrite:false,
+    polygonOffset:true,polygonOffsetFactor:-2,roughness:.94,metalness:0,envMapIntensity:.45,
+    normalMap:printNormal,normalScale:new T.Vector2(.08,.08),aoMap:printAO,aoMapIntensity:.8});
+  // Discard projected UVs outside the artwork. Texture clamping alone can stretch
+  // edge pixels into lines across the sleeves, especially in minified image uploads.
+  printMaterial.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',
+    'if (any(lessThan(vMapUv, vec2(0.0))) || any(greaterThan(vMapUv, vec2(1.0)))) discard;\n#include <map_fragment>');};
+  const print=new T.Mesh(front,printMaterial); print.renderOrder=2; scene.add(print);
 
-  // Modelo -------------------------------------------------------------------
-  const gltf = await new T.GLTFLoader().loadAsync('assets/tee.glb');
-  let tee = null, collar = null;
-  gltf.scene.traverse(o => { if (!o.isMesh) return; if (o.name.startsWith('Tee')) tee = o; else if (o.name.startsWith('Collar')) collar = o; });
-  if (!tee) throw new Error('assets/tee.glb sem a malha "Tee"');
-  const rig = new T.Group(); scene.add(rig);
-  rig.add(tee); if (collar) rig.add(collar);
-  const box = new T.Box3().setFromObject(rig), c = box.getCenter(new T.Vector3());
-  rig.position.set(-c.x, 0.36 - c.y, -c.z); rig.updateMatrixWorld(true);
-
-  const weave = makeFabricNormal(T, 14, false);
-  const cloth = new T.MeshPhysicalMaterial({
-    color: 0xf2f2ef, roughness: 0.88, metalness: 0,
-    sheen: 0.18, sheenRoughness: 0.9, sheenColor: new T.Color(0xffffff),
-    normalMap: weave, normalScale: new T.Vector2(0.32, 0.32), envMapIntensity: 0.35, side: T.DoubleSide
+  const controls=new T.OrbitControls(camera,el);
+  controls.target.set(0,.36,0); controls.enablePan=false;
+  controls.enableDamping=!matchMedia('(prefers-reduced-motion: reduce)').matches;
+  controls.dampingFactor=.09; controls.rotateSpeed=.65; controls.zoomSpeed=.65;
+  controls.minDistance=1.05; controls.maxDistance=3.4; controls.minPolarAngle=.65; controls.maxPolarAngle=2.35;
+  camera.position.set(.12,.46,2.12); controls.update();
+  let active=false, visible=true, raf=0;
+  function requestRender(){if(active && visible && !document.hidden && !raf)raf=requestAnimationFrame(frame);}
+  function frame(){raf=0;if(!active || !visible || document.hidden)return;const moving=controls.update();renderer.render(scene,camera);if(moving)requestRender();}
+  controls.addEventListener('change',requestRender);
+  function resize(){if(!preview.clientWidth)return;const h=Math.max(160,preview.clientHeight-90);el.style.height=h+'px';renderer.setSize(preview.clientWidth,h,false);camera.aspect=preview.clientWidth/h;camera.updateProjectionMatrix();requestRender();}
+  const observer=new ResizeObserver(resize); observer.observe(preview);
+  const intersection=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;requestRender();}); intersection.observe(preview);
+  document.addEventListener('visibilitychange',requestRender);
+  for(const button of tools.el.querySelectorAll('[data-view]'))button.addEventListener('click',()=>{
+    controls.reset(); controls.target.set(0,.36,0);
+    camera.position.set(...(button.dataset.view==='back'?[0,.44,-2.12]:button.dataset.view==='detail'?[.72,.55,1.25]:[0,.44,2.12]));
+    controls.update();requestRender();
   });
-  tee.material = cloth;
-  const rib = new T.MeshPhysicalMaterial({color: 0xe9e9e4, roughness: 0.8, metalness: 0, sheen: 0.25, sheenRoughness: 0.8, normalMap: makeFabricNormal(T, 6, true), normalScale: new T.Vector2(0.5, 0.5), envMapIntensity: 0.35});
-  if (collar) collar.material = rib;
-
-  const shadow = new T.Mesh(new T.CircleGeometry(0.46, 48), new T.MeshBasicMaterial({map: makeShadow(T), transparent: true, depthWrite: false}));
-  shadow.rotation.x = -Math.PI / 2; shadow.scale.set(1, 0.55, 1);
-  shadow.position.y = box.min.y + rig.position.y - 0.004; scene.add(shadow);
-
-  // Estampa: decalque projetado no tecido ---------------------------------------
-  const texCanvas = document.createElement('canvas'); texCanvas.width = 600; texCanvas.height = 660;
-  const tctx = texCanvas.getContext('2d');
-  const texture = new T.CanvasTexture(texCanvas); texture.colorSpace = T.SRGBColorSpace; texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-  const decalNormal = weave.clone(); decalNormal.repeat.set(4, 4.4); decalNormal.needsUpdate = true;
-  const decalMaterial = new T.MeshStandardMaterial({map: texture, transparent: true, depthTest: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, roughness: 0.9, metalness: 0, normalMap: decalNormal, normalScale: new T.Vector2(0.2, 0.2), envMapIntensity: 0.25});
-  const decal = new T.Mesh(new T.PlaneGeometry(0.001, 0.001), decalMaterial); decal.renderOrder = 2; decal.visible = false; scene.add(decal);
-  const raycaster = new T.Raycaster(), helper = new T.Object3D(), ndc = new T.Vector2();
-  // Sliders ↔ peça: 1 unidade = 3,3 px na prévia 2D ≈ 3,4 mm no tecido; centro do peito a 0,44 m.
-  const CHEST_Y = 0.44, K = 0.0034;
-  let current = studio.getDesign(), dragging = false;
-
-  const worldNormal = h => h.face.normal.clone().transformDirection(h.object.matrixWorld);
-  const pickFront = hits => { for (const h of hits) if (worldNormal(h).z > 0.12) return h; return null; };
-  function frontHit(x, y) { raycaster.set(new T.Vector3(x, y, 2), new T.Vector3(0, 0, -1)); return pickFront(raycaster.intersectObject(tee, false)); }
-  function buildDecal(hit, d) {
-    helper.position.copy(hit.point); helper.lookAt(hit.point.clone().add(worldNormal(hit)));
-    helper.rotateZ(-d.rotation * Math.PI / 180);
-    const s = d.scale / 100;
-    const geometry = new T.DecalGeometry(tee, hit.point, helper.rotation, new T.Vector3(0.30 * s, 0.33 * s, 0.14));
-    decal.geometry.dispose(); decal.geometry = geometry; decal.visible = true;
-  }
-  function placeFromDesign(d) { const hit = frontHit(d.x * K, CHEST_Y - d.y * K); if (hit) buildDecal(hit, d); }
-  function drawTexture(d) {
-    tctx.clearRect(0, 0, 600, 660); tctx.save(); tctx.translate(300, 330); tctx.scale(2, 2); tctx.translate(-500, -500); studio.drawPrint(tctx, d); tctx.restore();
-    texture.needsUpdate = true;
-  }
-  function applyDesign(d) {
-    current = d;
-    cloth.color.set(d.garment || (d.color === 'white' ? '#f2f2ef' : '#15161a'));
-    cloth.sheenColor.copy(cloth.color).lerp(new T.Color(0xffffff), 0.35); rib.sheenColor.copy(cloth.sheenColor);
-    rib.color.copy(cloth.color).multiplyScalar(0.94);
-    drawTexture(d);
-    if (!dragging) placeFromDesign(d);
-    tools.sync(d);
-  }
-
-  // Arrastar a estampa direto na peça (fora dela, o arraste gira a camiseta) -------------
-  const pointerRay = e => { const r = el.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); raycaster.setFromCamera(ndc, camera); };
-  const overDecal = e => { if (!decal.visible) return false; pointerRay(e); return raycaster.intersectObject(decal, false).length > 0; };
-  const syncForm = () => form.dispatchEvent(new Event('input', {bubbles: true}));
-  let raf = 0, over = false;
-  el.style.touchAction = 'none';
-  el.addEventListener('pointerdown', e => {
-    if ((e.pointerType === 'mouse' && e.button !== 0) || !overDecal(e)) return;
-    e.stopImmediatePropagation(); e.preventDefault();
-    dragging = true; controls.enabled = false; el.setPointerCapture(e.pointerId); el.classList.add('is-drag');
-  }, {capture: true});
-  el.addEventListener('pointermove', e => {
-    if (dragging) {
-      pointerRay(e);
-      const hit = pickFront(raycaster.intersectObject(tee, false)); if (!hit) return;
-      const x = Math.max(-30, Math.min(30, Math.round(hit.point.x / K))), y = Math.max(-25, Math.min(25, Math.round((CHEST_Y - hit.point.y) / K)));
-      buildDecal(hit, {...current, x, y});
-      if (x !== current.x || y !== current.y) { current = {...current, x, y}; $('#design-x').value = x; $('#design-y').value = y; cancelAnimationFrame(raf); raf = requestAnimationFrame(syncForm); }
-      return;
+  let current=studio.getDesign(), textureKey='', pixels=null;
+  function applyDesign(d){
+    current=d;cloth.color.set(d.garment||(d.color==='white'?'#f2f2ef':'#15161a'));
+    cloth.sheenColor.copy(cloth.color);
+    const nextKey=JSON.stringify([d.mode,d.text,d.font,d.ink,d.brief,studio.artworkVersion?.()]);
+    if(nextKey!==textureKey){
+      textureKey=nextKey;tctx.clearRect(0,0,600,660);tctx.save();tctx.translate(300,330);tctx.scale(2,2);tctx.translate(-500,-500);studio.drawPrint(tctx,d);tctx.restore();
+      // Transparent border prevents clamp-to-edge streaks outside the print rectangle.
+      tctx.clearRect(0,0,600,2);tctx.clearRect(0,658,600,2);tctx.clearRect(0,0,2,660);tctx.clearRect(598,0,2,660);
+      pixels=tctx.getImageData(0,0,600,660).data;texture.needsUpdate=true;
     }
-    const o = overDecal(e);
-    if (o !== over) { over = o; el.classList.toggle('is-over', o); controls.enableZoom = !o; }
-  });
-  const release = e => { if (!dragging) return; dragging = false; controls.enabled = true; el.classList.remove('is-drag'); try { el.releasePointerCapture(e.pointerId); } catch {} placeFromDesign(current); };
-  el.addEventListener('pointerup', release); el.addEventListener('pointercancel', release);
-  // Roda do mouse sobre a estampa: tamanho (fora dela, zoom da câmera).
-  el.addEventListener('wheel', e => {
-    if (!overDecal(e)) return;
-    e.preventDefault(); e.stopImmediatePropagation();
-    const input = $('#design-scale'); input.value = Math.max(45, Math.min(100, Number(input.value) - Math.sign(e.deltaY) * 3)); syncForm();
-  }, {capture: true, passive: false});
-  el.addEventListener('keydown', e => {
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    const off = camera.position.clone().sub(controls.target).applyAxisAngle(new T.Vector3(0, 1, 0), e.key === 'ArrowLeft' ? -0.25 : 0.25);
-    camera.position.copy(controls.target).add(off); controls.update(); render(); e.preventDefault();
-  });
-
-  let running = false;
-  function render() { renderer.render(scene, camera); }
-  function frame() { if (!running) return; controls.update(); render(); requestAnimationFrame(frame); }
-  function resize() { const w = preview.clientWidth, h = preview.clientHeight; if (!w || !h) return; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); render(); }
-  new ResizeObserver(resize).observe(preview);
+    const [a,b,x,c,e,y]=printTransform(d);texture.matrix.set(a,b,x,c,e,y,0,0,1);
+    tools.sync(d);requestRender();
+  }
+  const onDesign=e=>applyDesign(e.detail);document.addEventListener('doavesso:design',onDesign);
   applyDesign(current);
-  document.addEventListener('doavesso:design', e => { applyDesign(e.detail); if (!running) render(); });
 
-  return { setActive(on) { el.hidden = !on; running = on; if (on) { resize(); requestAnimationFrame(frame); } } };
+  const raycaster=new T.Raycaster(), ndc=new T.Vector2();
+  function hit(e){const r=el.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2);raycaster.setFromCamera(ndc,camera);return raycaster.intersectObject(tee,false)[0];}
+  function isPrint(h){
+    if(!h || h.face.normal.z<=.12 || !pixels)return false;
+    const uv=printUV(h.point,current);if(uv.x<=0 || uv.x>=1 || uv.y<=0 || uv.y>=1)return false;
+    return pixels[(Math.floor((1-uv.y)*660)*600+Math.floor(uv.x*600))*4+3]>20;
+  }
+  let drag=null;
+  el.style.touchAction='none';
+  el.addEventListener('pointerdown',e=>{
+    if(drag || (e.pointerType==='mouse' && e.button!==0))return;
+    const h=hit(e);if(!isPrint(h))return;
+    e.stopImmediatePropagation();e.preventDefault();el.focus({preventScroll:true});
+    drag={id:e.pointerId,offset:{x:h.point.x-(current.x||0)*UNIT,y:h.point.y-(CHEST_Y-(current.y||0)*UNIT)}};
+    controls.enabled=false;el.setPointerCapture(e.pointerId);el.classList.add('is-drag');
+  },{capture:true});
+  el.addEventListener('pointermove',e=>{
+    const h=hit(e);
+    if(drag){
+      if(e.pointerId!==drag.id || !h || h.face.normal.z<=.12)return;
+      const next=dragPosition(h.point,drag.offset);
+      if(next.x!==current.x || next.y!==current.y){$('#design-x').value=next.x;$('#design-y').value=next.y;syncForm();}
+    }else el.classList.toggle('is-over',isPrint(h));
+  });
+  const release=e=>{if(!drag || e.pointerId!==drag.id)return;drag=null;controls.enabled=true;el.classList.remove('is-drag');if(el.hasPointerCapture(e.pointerId))el.releasePointerCapture(e.pointerId);};
+  el.addEventListener('pointerup',release);el.addEventListener('pointercancel',release);el.addEventListener('lostpointercapture',release);
+  el.addEventListener('wheel',e=>{
+    if(!isPrint(hit(e)))return;e.preventDefault();e.stopImmediatePropagation();
+    $('#design-scale').value=Math.max(45,Math.min(100,current.scale-Math.sign(e.deltaY)*3));syncForm();
+  },{capture:true,passive:false});
+  el.addEventListener('keydown',e=>{
+    if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;
+    e.preventDefault();
+    if(e.shiftKey){const horizontal=e.key==='ArrowLeft'||e.key==='ArrowRight',id=horizontal?'#design-x':'#design-y',input=$(id);input.value=Number(input.value)+(['ArrowLeft','ArrowUp'].includes(e.key)?-1:1);syncForm();}
+    else {const off=camera.position.clone().sub(controls.target).applyAxisAngle(new T.Vector3(0,1,0),e.key==='ArrowLeft' || e.key==='ArrowUp'?-.18:.18);camera.position.copy(controls.target).add(off);controls.update();requestRender();}
+  });
+
+  // Deterministic front image for downloads and cart, independent of orbit/zoom.
+  function snapshot(){
+    const size=renderer.getSize(new T.Vector2()), ratio=renderer.getPixelRatio(), saved=camera.clone();
+    const out=document.createElement('canvas');out.width=out.height=1000;
+    try {
+      camera.position.set(0,.44,2.05);camera.lookAt(0,.36,0);camera.aspect=1;camera.updateProjectionMatrix();
+      renderer.setPixelRatio(1);renderer.setSize(1000,1000,false);renderer.render(scene,camera);
+      const ctx=out.getContext('2d');ctx.fillStyle='#edeef0';ctx.fillRect(0,0,1000,1000);ctx.drawImage(el,0,0);
+      return out;
+    } finally {camera.copy(saved);renderer.setPixelRatio(ratio);renderer.setSize(size.x,size.y,false);requestRender();}
+  }
+  studio.capturePreview=snapshot;
+  studio.is3DActive=()=>active;
+  preview.appendChild(el);preview.appendChild(tools.el);
+  return {setActive(on){active=on;el.hidden=!on;preview.classList.toggle('has-3d',on);if(on){resize();requestRender();}else{cancelAnimationFrame(raf);raf=0;}},snapshot};
 }
 
-if (preview && footer && canvas2d && form && supportsWebGL()) setup();
+function setup(){
+  const button=document.createElement('button');button.type='button';button.className='text-button';button.id='toggle-3d';
+  button.textContent='Ver em 3D ↻';button.setAttribute('aria-pressed','false');footer.insertBefore(button,footer.lastElementChild);
+  const tools=buildTools(),label=footer.querySelector('span'),label2d=label.textContent;
+  let view=null,active=false;
+  button.addEventListener('click',async()=>{
+    if(!view){button.disabled=true;button.textContent='Carregando camiseta…';try{view=await createView(tools);}catch(error){console.error(error);button.textContent='Tentar carregar 3D novamente';return;}finally{button.disabled=false;}}
+    active=!active;view.setActive(active);tools.el.hidden=!active;
+    canvas2d.style.visibility=active?'hidden':'';
+    if(!active && $('#design-garment').value)canvas2d.getContext('2d').drawImage(view.snapshot(),0,0,1000,1000);
+    button.textContent=active?'Voltar à prévia 2D':'Ver em 3D ↻';button.setAttribute('aria-pressed',String(active));
+    label.textContent=active?'FRENTE E COSTAS · PRÉVIA 3D':label2d;
+  });
+}
+if(preview && footer && canvas2d && form)setup();

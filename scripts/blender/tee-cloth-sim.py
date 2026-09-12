@@ -1,4 +1,5 @@
-# Gera o modelo 3D da camiseta (dist/assets/tee.glb) com simulação de tecido no Blender 5.2.
+# Experimento anterior de simulação de tecido no Blender 5.2 (preservado para referência).
+# A camiseta publicada agora é preparada por scripts/prepare-shirt.mjs; veja docs/studio-3d.md.
 #
 # Como funciona (mesma lógica de uma camiseta costurada):
 #   1. Painéis frente e costas são recortados de uma silhueta plana (tam. M da tabela: 52 cm de
