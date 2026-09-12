@@ -67,3 +67,16 @@
 @media(max-width:700px){.tee-tools{padding:10px 10px 8px;gap:6px 10px}.tee-hint{display:none}}
 .design-preview canvas.preview-3d{height:calc(100% - 90px)!important}
 @media(max-width:700px){#design-preview.has-3d{aspect-ratio:4/5;height:auto;width:100%;display:block}.tee-camera{top:8px;right:8px}.tee-camera button{min-height:32px;padding:4px 10px}.tee-swatches{gap:6px}}
+.print-tabs-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px}.print-tabs,.print-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.print-actions{margin-left:auto}
+.print-tab{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;padding:7px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font:600 13px/1.2 var(--body);color:var(--ink);cursor:pointer}
+.print-tab small{font:500 10.5px/1.2 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.print-tab[aria-selected=true]{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue);color:var(--blue)}
+.print-tab[aria-selected=true] small{color:var(--blue)}
+.print-add{border-style:dashed;color:var(--muted);justify-content:center}
+.print-add:hover{border-color:var(--ink);color:var(--ink)}
+.print-actions .text-button{font-size:12px}
+.zone-field{margin:0 0 16px}.zone-buttons{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.zone-buttons button{padding:6px 11px;border:1px solid var(--line);border-radius:999px;background:#fff;font:600 12px/1 var(--body);color:var(--ink);cursor:pointer}.zone-buttons button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.tee-zones{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.tee-zones button{padding:5px 10px;border:1px solid rgba(22,23,25,.2);border-radius:999px;background:#fff;font:600 11px/1 var(--body);letter-spacing:.04em;text-transform:none;color:var(--ink);cursor:pointer}
+.tee-zones button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+input[type=range]:disabled{opacity:.4}

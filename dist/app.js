@@ -1,4 +1,5 @@
-import {PRODUCTS,SIZES,CUSTOM,FREE_SHIPPING_MIN,INSTALLMENTS,installment,customMode,shippingSuggestion,setProducts,money,escapeHTML as esc,totals,addItem,changeQuantity,normalizeCart,validImageURL,garmentLabel} from './commerce.js';
+import {PRODUCTS,SIZES,CUSTOM,FREE_SHIPPING_MIN,INSTALLMENTS,installment,customMode,shippingSuggestion,setProducts,money,escapeHTML as esc,totals,addItem,changeQuantity,normalizeCart,validImageURL,garmentLabel,PRINT_ZONES,PRINT_ZONE_AT,isZone,MAX_PRINTS,printsSummary} from './commerce.js';
+import {CHEST_Y,UNIT} from './studio-placement.js';
 import {online,fetchProducts,rpc,uploadDesign,dataURLToBlob,getUser,signIn,signUp,signOut,resetPassword,updatePassword,signInWithGoogle,handleAuthRedirect,fetchProfile,updateProfile,fetchMyOrders} from './api.js';
 const $=(selector,root=document)=>root.querySelector(selector);
 const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
@@ -70,7 +71,7 @@ function renderCart(){
  $('#cart-title-count').textContent=`(${totals(cart).count})`;
  if(!cart.length){$('#cart-content').innerHTML=`<div class="empty-state"><h3>Espaço para o seu próximo favorito.</h3><p>Sua sacola está vazia. Encontre uma peça ou crie a sua.</p><button class="button button-blue" id="continue-shopping">Explorar a coleção <span>↗</span></button></div>`;$('#continue-shopping').addEventListener('click',()=>{closeDialog($('#cart-dialog'));location.hash='colecao';});return;}
  const t=totals(cart);
- $('#cart-content').innerHTML=cart.map(item=>`<article class="cart-item">${itemThumb(item)}<div><h3>${esc(item.name)}</h3><p>${esc(item.color)} / ${esc(item.size)}</p>${item.id==='custom'?(customMode(item.design)==='brief'?`<p class="brief-excerpt">“${esc(item.design.brief)}”</p><p>Arte criada pela equipe · prévia para aprovação</p>`:'<p>Estampa personalizada inclusa</p>'):''}<div class="cart-item-bottom"><div class="quantity"><button data-qty="-1" data-key="${esc(item.key)}" aria-label="Diminuir quantidade de ${esc(item.name)}">−</button><span>${item.qty}</span><button data-qty="1" data-key="${esc(item.key)}" aria-label="Aumentar quantidade de ${esc(item.name)}" ${item.qty>=10?'disabled':''}>+</button></div><strong class="price">${money(item.price*item.qty)}</strong></div><button class="remove-item" data-remove="${esc(item.key)}">Remover</button></div></article>`).join('')+`<div class="cart-summary"><div class="summary-row"><span>Subtotal</span><span>${money(t.subtotal)}</span></div><div class="summary-row"><span>Entrega padrão</span><span>${t.delivery?money(t.delivery):'Grátis'}</span></div>${shippingProgressHTML(t.subtotal)}<div class="summary-row summary-total"><span>Total estimado</span><span>${money(t.total)}</span></div><button class="button button-blue" id="begin-checkout">Continuar para compra <span>→</span></button><button class="text-button" id="keep-shopping">Continuar comprando</button><p class="helper">Pré-lançamento: nenhum valor é cobrado por enquanto.</p></div>`;
+ $('#cart-content').innerHTML=cart.map(item=>`<article class="cart-item">${itemThumb(item)}<div><h3>${esc(item.name)}</h3><p>${esc(item.color)} / ${esc(item.size)}</p>${item.id==='custom'?(customMode(item.design)==='brief'?`<p class="brief-excerpt">“${esc(item.design.brief)}”</p><p>Arte criada pela equipe · prévia para aprovação</p>`:`<p>${esc(printsSummary(item.design))}</p>`):''}<div class="cart-item-bottom"><div class="quantity"><button data-qty="-1" data-key="${esc(item.key)}" aria-label="Diminuir quantidade de ${esc(item.name)}">−</button><span>${item.qty}</span><button data-qty="1" data-key="${esc(item.key)}" aria-label="Aumentar quantidade de ${esc(item.name)}" ${item.qty>=10?'disabled':''}>+</button></div><strong class="price">${money(item.price*item.qty)}</strong></div><button class="remove-item" data-remove="${esc(item.key)}">Remover</button></div></article>`).join('')+`<div class="cart-summary"><div class="summary-row"><span>Subtotal</span><span>${money(t.subtotal)}</span></div><div class="summary-row"><span>Entrega padrão</span><span>${t.delivery?money(t.delivery):'Grátis'}</span></div>${shippingProgressHTML(t.subtotal)}<div class="summary-row summary-total"><span>Total estimado</span><span>${money(t.total)}</span></div><button class="button button-blue" id="begin-checkout">Continuar para compra <span>→</span></button><button class="text-button" id="keep-shopping">Continuar comprando</button><p class="helper">Pré-lançamento: nenhum valor é cobrado por enquanto.</p></div>`;
  $('#begin-checkout').addEventListener('click',()=>{closeDialog($('#cart-dialog'));showCheckout();});
  $('#keep-shopping').addEventListener('click',()=>{closeDialog($('#cart-dialog'));location.hash='colecao';});
  $('[data-suggest]',$('#cart-content'))?.addEventListener('click',e=>{closeDialog($('#cart-dialog'));showProduct(e.currentTarget.dataset.suggest);});
@@ -116,9 +117,11 @@ async function submitOrder(data,shipping,payment){
  const items=[];
  for(const item of cart){
   if(item.id!=='custom'){items.push({kind:'catalog',product_id:item.id,size:item.size,qty:item.qty});continue;}
-  const folder=crypto.randomUUID(),mode=customMode(item.design),{image,...design}=item.design||{};
+  const folder=crypto.randomUUID(),mode=customMode(item.design),design=JSON.parse(JSON.stringify(item.design||{}));
   const preview_path=await uploadDesign(`${folder}/preview.jpg`,dataURLToBlob(item.preview));
-  const image_path=image?await uploadDesign(`${folder}/art.webp`,dataURLToBlob(image)):null;
+  let image_path=null;delete design.image;
+  for(const p of design.prints||[]){delete p.image_path;if(!p.image)continue;p.image_path=await uploadDesign(`${crypto.randomUUID()}/art.webp`,dataURLToBlob(p.image));delete p.image;image_path??=p.image_path;}
+  if(design.prints)design.image_paths=design.prints.map(p=>p.image_path||null);
   items.push({kind:mode==='brief'?'brief':'custom',base:item.base,size:item.size,qty:item.qty,design,preview_path,image_path});
  }
  return rpc('place_order',{p_customer:{name:data.get('name'),email:data.get('email'),cep:data.get('cep'),city:data.get('city'),address:data.get('address')},p_shipping:shipping,p_payment:payment,p_items:items});
@@ -126,7 +129,7 @@ async function submitOrder(data,shipping,payment){
 const STATUS_LABEL={aguardando_pagamento:'Aguardando pagamento',pago:'Pagamento confirmado',em_producao:'Em produção',enviado:'Enviado',entregue:'Entregue',cancelado:'Cancelado'};
 function orderRecordHTML(code,total,line,items){return `<article class="order-record"><strong>${esc(code)} · ${money(total)}</strong><p>${line}</p><ul>${items}</ul></article>`;}
 function ordersHTML(){
- const list=orders.length?`<p>Histórico deste navegador.${online()?' Para ver o status atual, consulte pelo código e e-mail abaixo.':' Todos os pedidos são demonstrativos.'}</p>${orders.map(o=>orderRecordHTML(o.id,o.total,`${esc(new Date(o.date).toLocaleDateString('pt-BR'))} · ${esc(o.payment)}${o.status==='demo'?' simulado':''}`,o.items.map(i=>`<li>${esc(i.name)} · ${esc(i.color)} · ${esc(i.size)} × ${esc(i.qty)}${i.design?.brief?`<br><small>“${esc(i.design.brief)}”</small>`:''}</li>`).join(''))).join('')}`:'<div class="empty-state"><h3>Nenhum pedido por aqui.</h3><p>Finalize uma compra para ver seu histórico.</p></div>';
+ const list=orders.length?`<p>Histórico deste navegador.${online()?' Para ver o status atual, consulte pelo código e e-mail abaixo.':' Todos os pedidos são demonstrativos.'}</p>${orders.map(o=>orderRecordHTML(o.id,o.total,`${esc(new Date(o.date).toLocaleDateString('pt-BR'))} · ${esc(o.payment)}${o.status==='demo'?' simulado':''}`,o.items.map(i=>`<li>${esc(i.name)} · ${esc(i.color)} · ${esc(i.size)} × ${esc(i.qty)}${i.design?.brief?`<br><small>“${esc(i.design.brief)}”</small>`:i.design?.prints?`<br><small>${esc(printsSummary(i.design))}</small>`:''}</li>`).join(''))).join('')}`:'<div class="empty-state"><h3>Nenhum pedido por aqui.</h3><p>Finalize uma compra para ver seu histórico.</p></div>';
  const lookup=online()?'<form id="order-lookup" class="order-lookup"><h3>Consultar status</h3><div class="field-row"><label>Código<input name="code" required maxlength="24" placeholder="AV-XXXXXXXXXXX-XXXX" autocomplete="off"></label><label>E-mail do pedido<input name="email" type="email" required maxlength="120" autocomplete="email"></label></div><button type="submit" class="button button-blue">Consultar <span>→</span></button><div id="lookup-result" aria-live="polite"></div></form>':'';
  return list+lookup;
 }
@@ -141,16 +144,29 @@ $('#view-orders').addEventListener('click',()=>{
   }catch(error){out.innerHTML=`<p class="helper">${esc(error.message)}</p>`;}
  });
 });
-$('#open-help').addEventListener('click',()=>showInfo('Dúvidas frequentes','<h3>Esta loja já vende produtos?</h3><p>Estamos em pré-lançamento. Os pedidos são registrados de verdade, com código para acompanhamento, mas o pagamento ainda não está integrado: nenhum valor é cobrado por enquanto e a equipe entra em contato pelo e-mail informado.</p><h3>Como funciona a personalização?</h3><p>Escolha uma base branca ou preta, escreva seu texto e envie uma imagem PNG, JPG ou WebP. Ajuste tamanho, posição vertical e rotação. A prévia acompanha a peça na sacola.</p><h3>E se eu não souber desenhar?</h3><p>No estúdio, escolha “Descrever a ideia” e conte como imagina a estampa: cores, estilo, frases, referências. A equipe cria a arte e envia a prévia para aprovação antes de produzir. A criação está incluída no preço da peça sob medida.</p><h3>Minha imagem é enviada para algum lugar?</h3><p>A prévia é montada no seu navegador. Só quando você confirma o pedido a prévia e a arte enviada são guardadas em um espaço privado da loja, ligadas ao seu pedido, para a produção. A sacola fica salva apenas neste dispositivo.</p><h3>Como funciona a entrega?</h3><p>Frete padrão de R$ 14,90, grátis a partir de R$ 250 em produtos, ou expresso de R$ 24,90. Prazos e valores de pré-lançamento.</p><h3>E as trocas?</h3><p>A política demonstrativa está em “Trocas e devoluções”, no rodapé: 30 dias para peças do catálogo, primeira troca de tamanho grátis, e personalizadas só por defeito. Os termos reais devem ser definidos antes de iniciar vendas.</p>'));
+$('#open-help').addEventListener('click',()=>showInfo('Dúvidas frequentes','<h3>Esta loja já vende produtos?</h3><p>Estamos em pré-lançamento. Os pedidos são registrados de verdade, com código para acompanhamento, mas o pagamento ainda não está integrado: nenhum valor é cobrado por enquanto e a equipe entra em contato pelo e-mail informado.</p><h3>Como funciona a personalização?</h3><p>Escolha uma base branca ou preta, escreva seu texto e envie uma imagem PNG, JPG ou WebP. Ajuste tamanho, posição e rotação; no 3D, leve a estampa para as costas, mangas ou lateral e adicione até 4 estampas na mesma peça. A prévia acompanha a peça na sacola.</p><h3>E se eu não souber desenhar?</h3><p>No estúdio, escolha “Descrever a ideia” e conte como imagina a estampa: cores, estilo, frases, referências. A equipe cria a arte e envia a prévia para aprovação antes de produzir. A criação está incluída no preço da peça sob medida.</p><h3>Minha imagem é enviada para algum lugar?</h3><p>A prévia é montada no seu navegador. Só quando você confirma o pedido a prévia e a arte enviada são guardadas em um espaço privado da loja, ligadas ao seu pedido, para a produção. A sacola fica salva apenas neste dispositivo.</p><h3>Como funciona a entrega?</h3><p>Frete padrão de R$ 14,90, grátis a partir de R$ 250 em produtos, ou expresso de R$ 24,90. Prazos e valores de pré-lançamento.</p><h3>E as trocas?</h3><p>A política demonstrativa está em “Trocas e devoluções”, no rodapé: 30 dias para peças do catálogo, primeira troca de tamanho grátis, e personalizadas só por defeito. Os termos reais devem ser definidos antes de iniciar vendas.</p>'));
 
 // All image processing stays in this browser. Preview and exported design share one renderer.
 const canvas=$('#design-canvas'),ctx=canvas.getContext('2d');
 const imageCache={};
 function loadImage(src){return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('Não foi possível carregar a imagem.'));img.src=src;});}
 function readAsDataURL(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error('Não foi possível ler esse arquivo. Escolha outra imagem.'));r.readAsDataURL(file);});}
-let uploadImage=null,uploadData=null,uploadGeneration=0,designReady=false;
-const designDefaults={color:'white',garment:'',size:'M',text:'DO MEU\nJEITO.',font:'condensed',ink:'#1737bc',scale:80,x:0,y:0,rotation:0,brief:''};
+let designReady=false;
+// Estampas: até MAX_PRINTS por peça, editadas uma por vez — o formulário sempre mostra a estampa ativa.
+// Cada estampa tem texto e/ou imagem, tamanho, rotação e um lugar: (x, y) na frente ou `place` em qualquer zona da peça.
+const designDefaults={color:'white',garment:'',size:'M',brief:''};
+const printDefaults={text:'DO MEU\nJEITO.',font:'condensed',ink:'#1737bc',scale:80,x:0,y:0,rotation:0,place:null,image:null,rev:0,placeholder:false};
+// Lugares aproximados por zona para estampas novas (o 3D encaixa na superfície pela profundidade do projetor).
+const ZONE_PLACES={back:{p:[0,CHEST_Y+.02,-.12],n:[0,0,-1],zone:'back'},'sleeve-left':{p:[.3,.55,.03],n:[.88,0,.47],zone:'sleeve-left'},'sleeve-right':{p:[-.3,.55,.03],n:[-.88,0,.47],zone:'sleeve-right'}};
+let prints=[{...printDefaults}],activePrint=0;
+const imgCache=new Map();
 let designMode='create';
+const zoneOfPrint=p=>isZone(p?.place?.zone)?p.place.zone:'front';
+const zoneName=p=>PRINT_ZONES[zoneOfPrint(p)];
+const zoneAt=p=>PRINT_ZONE_AT[zoneOfPrint(p)];
+const isFilled=p=>Boolean(p.image||(p.text.trim()&&!p.placeholder));
+// Nova estampa nasce na primeira zona livre: costas, manga esquerda, manga direita; senão na frente, mais abaixo.
+function freePlace(){const used=new Set(prints.map(zoneOfPrint));for(const zone of ['back','sleeve-left','sleeve-right'])if(!used.has(zone))return {place:{...ZONE_PLACES[zone]}};return {place:null,y:used.has('front')?18:0};}
 function setMode(mode){
  designMode=mode;
  $$('[data-mode]').forEach(b=>{const on=b.dataset.mode===mode;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
@@ -158,49 +174,118 @@ function setMode(mode){
  $('#custom-label').textContent=mode==='brief'?'Sua camiseta com estampa sob medida':'Sua camiseta personalizada';
  $('#custom-price').textContent=money(CUSTOM[mode].price);
  const base=PRODUCTS.find(p=>p.id==='essencial-branca').price;
- $('#custom-breakdown').textContent=`Base Essencial ${money(base)} + ${mode==='brief'?'criação da arte e estampa':'estampa frontal'} ${money(CUSTOM[mode].price-base)}`;
- $('#custom-helper').textContent=mode==='brief'?'Criação da arte inclusa. Você aprova a prévia antes da produção.':'Personalização frontal inclusa.';
+ $('#custom-breakdown').textContent=`Base Essencial ${money(base)} + ${mode==='brief'?'criação da arte e estampa':'estampa'} ${money(CUSTOM[mode].price-base)}`;
+ $('#custom-helper').textContent=mode==='brief'?'Criação da arte inclusa. Você aprova a prévia antes da produção.':'Personalização inclusa: frente, costas, mangas ou lateral, com até 4 estampas.';
  renderDesign();
 }
 $$('[data-mode]').forEach(b=>b.addEventListener('click',()=>{setMode(b.dataset.mode);if(b.dataset.mode==='brief')$('#design-brief').focus();}));
-$$('.starter').forEach(b=>b.addEventListener('click',()=>{$('#design-text').value=b.dataset.starter;renderDesign();$('#design-text').focus();}));
+$$('.starter').forEach(b=>b.addEventListener('click',()=>{$('#design-text').value=b.dataset.starter;prints[activePrint].placeholder=false;renderDesign();$('#design-text').focus();}));
 function syncSwatches(){const ink=$('#design-ink').value.toLowerCase();$$('.swatch[data-ink]').forEach(b=>{const on=b.dataset.ink===ink;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});}
 $$('.swatch[data-ink]').forEach(b=>b.addEventListener('click',()=>{$('#design-ink').value=b.dataset.ink;syncSwatches();renderDesign();}));
-function getDesign(){return {mode:designMode,color:$('#design-color').value,garment:$('#design-garment').value,size:$('#design-size').value,text:$('#design-text').value,font:$('#design-font').value,ink:$('#design-ink').value,scale:Number($('#design-scale').value),x:Number($('#design-x').value),y:Number($('#design-y').value),rotation:Number($('#design-rotation').value),brief:$('#design-brief').value.trim()};}
+// Formulário ↔ estampa ativa.
+function readPrintFields(){const p=prints[activePrint];p.text=$('#design-text').value;p.font=$('#design-font').value;p.ink=$('#design-ink').value;p.scale=Number($('#design-scale').value);if(!p.place){p.x=Number($('#design-x').value);p.y=Number($('#design-y').value);}p.rotation=Number($('#design-rotation').value);}
+function writePrintFields(){
+ const p=prints[activePrint];
+ $('#design-text').value=p.text;$('#design-font').value=p.font;$('#design-ink').value=p.ink;$('#design-scale').value=p.scale;$('#design-x').value=p.x;$('#design-y').value=p.y;$('#design-rotation').value=p.rotation;
+ syncSwatches();$('#design-upload').value='';$('#remove-upload').hidden=!p.image;$('#upload-status').textContent=p.image?'Imagem pronta nesta estampa.':'Use uma imagem sua ou que você tenha autorização para usar.';
+}
+// Abas: reconstruídas só quando a estrutura muda (foco e leitores de tela não perdem a aba ativa).
+let tabsKey='';
+function renderPrintTabs(){
+ const box=$('#print-tabs'),actions=$('#print-actions');if(!box)return;
+ const key=JSON.stringify([prints.map(zoneOfPrint),activePrint]);
+ if(key===tabsKey)return;tabsKey=key;
+ box.innerHTML=prints.map((p,i)=>`<button type="button" role="tab" class="print-tab" data-print="${i}" aria-selected="${i===activePrint}" tabindex="${i===activePrint?0:-1}">Estampa ${i+1}<small>${esc(zoneName(p))}</small></button>`).join('');
+ actions.innerHTML=(prints.length<MAX_PRINTS?'<button type="button" class="print-tab print-add" id="add-print" title="Adicionar outra estampa (costas, mangas…)">＋ Outra estampa</button>':'')+(prints.length>1?`<button type="button" class="text-button" id="remove-print" aria-label="Remover estampa ${activePrint+1} (${esc(zoneName(prints[activePrint]))})">Remover esta</button>`:'');
+}
+function focusTab(){$(`#print-tabs [data-print="${activePrint}"]`)?.focus();}
+function selectPrint(i,focus){if(!prints[i]||i===activePrint)return;readPrintFields();activePrint=i;writePrintFields();renderDesign();if(focus)focusTab();}
+function addPrint(){
+ if(prints.length>=MAX_PRINTS)return;readPrintFields();
+ prints.push({...printDefaults,text:'SUA\nESTAMPA',placeholder:true,...freePlace()});
+ activePrint=prints.length-1;writePrintFields();renderDesign();$('#design-text').focus();$('#design-text').select();
+}
+function removePrint(){if(prints.length<=1)return;prints.splice(activePrint,1);activePrint=Math.max(0,activePrint-1);writePrintFields();renderDesign();focusTab();}
+// Usado pelo 3D e pelo seletor "Onde fica": altera uma estampa (ativa ou não) sem passar pelo formulário.
+function updatePrint(i,patch){if(!prints[i])return;readPrintFields();Object.assign(prints[i],patch);if(i===activePrint)writePrintFields();renderDesign();}
+$('#print-tabs')?.addEventListener('click',e=>{const tab=e.target.closest('[data-print]');if(tab)selectPrint(Number(tab.dataset.print),true);});
+$('#print-tabs')?.addEventListener('keydown',e=>{
+ const step={ArrowRight:1,ArrowLeft:-1,Home:-Infinity,End:Infinity}[e.key];if(step===undefined)return;
+ e.preventDefault();const next=step===-Infinity?0:step===Infinity?prints.length-1:(activePrint+step+prints.length)%prints.length;selectPrint(next,true);
+});
+$('#print-actions')?.addEventListener('click',e=>{if(e.target.closest('#add-print'))addPrint();else if(e.target.closest('#remove-print'))removePrint();});
+$$('#zone-buttons [data-place]').forEach(b=>b.addEventListener('click',()=>{const z=b.dataset.place;updatePrint(activePrint,z==='front'?{x:0,y:0,place:null}:{place:{...ZONE_PLACES[z]}});}));
+function getDesign(){readPrintFields();return {mode:designMode,color:$('#design-color').value,garment:$('#design-garment').value,size:$('#design-size').value,brief:$('#design-brief').value.trim(),prints:prints.map(p=>({...p})),active:activePrint};}
 const colorName=d=>d.garment?`cor personalizada ${d.garment}`:d.color==='white'?'branca':'preta';
 const fontFamily={condensed:'"Barlow Condensed", Impact, sans-serif',sans:'Manrope, Arial, sans-serif',serif:'Georgia, serif'};
-function renderDesign(){
- const d=getDesign();
- $('#scale-output').textContent=`${d.scale}%`;$('#position-output').textContent=d.y===0?'Centro':d.y<0?'Mais acima':'Mais abaixo';$('#x-output').textContent=d.x===0?'Centro':d.x<0?'Para a esquerda':'Para a direita';$('#rotation-output').textContent=`${d.rotation}°`;
+function ensureImages(d){for(const p of d.prints)if(p.image&&!imgCache.has(p.image)){imgCache.set(p.image,null);loadImage(p.image).then(img=>{imgCache.set(p.image,img);renderDesign();}).catch(()=>{});}}
+// opts.export: desenho limpo para sacola/download (sem contorno de seleção, selo ou miniatura de UI).
+function renderDesign(opts={}){
+ const d=getDesign(),p=prints[activePrint],free=d.mode!=='brief'&&Boolean(p.place);
+ $('#scale-output').textContent=`${p.scale}%`;$('#rotation-output').textContent=`${p.rotation}°`;
+ $('#position-output').textContent=free?`${zoneAt(p)[0].toUpperCase()+zoneAt(p).slice(1)} · mova no 3D`:p.y===0?'Centro':p.y<0?'Mais acima':'Mais abaixo';
+ $('#x-output').textContent=free?'Mova no 3D':p.x===0?'Centro':p.x<0?'Para a esquerda':'Para a direita';
+ $('#design-x').disabled=$('#design-y').disabled=free;
+ const zone=zoneOfPrint(p);$$('#zone-buttons [data-place]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.place===zone)));
+ renderPrintTabs();ensureImages(d);
  if(!imageCache[d.color])return;
  ctx.clearRect(0,0,1000,1000);ctx.drawImage(imageCache[d.color],0,0,1000,1000);
- const hasText=drawPrint(ctx,d,true);
- if(d.mode==='brief')canvas.setAttribute('aria-label',`Prévia: camiseta ${colorName(d)}, tamanho ${d.size}, área reservada para a estampa descrita`);
- else canvas.setAttribute('aria-label',`Prévia: camiseta ${colorName(d)}, tamanho ${d.size}${hasText?`, texto ${d.text.replace(/\n/g,' ')}`:''}${uploadImage?', com imagem personalizada':''}`);
+ const elsewhere=[];let hasText=false;
+ d.prints.forEach((q,i)=>{
+  if(d.mode==='brief'&&i!==d.active)return;
+  if(d.mode!=='brief'&&q.place&&q.place.zone!=='front'){elsewhere.push({i,q});return;}
+  if(drawPrint(ctx,q,d,true,!opts.export&&d.prints.length>1&&i===d.active))hasText=true;
+ });
+ const summary=d.mode==='brief'?', área reservada para a estampa descrita':`${hasText?', com texto':''}${d.prints.some(q=>q.image)?', com imagem':''}${elsewhere.length?`, ${elsewhere.map(({i,q})=>`estampa ${i+1} ${zoneAt(q)}`).join(', ')}`:''}`;
+ canvas.setAttribute('aria-label',`Prévia: camiseta ${colorName(d)}, tamanho ${d.size}${summary}`);
  document.dispatchEvent(new CustomEvent('duavesso:design',{detail:d}));
- if(d.garment && window.duavessoStudio.capturePreview && !window.duavessoStudio.is3DActive?.())ctx.drawImage(window.duavessoStudio.capturePreview(),0,0,1000,1000);
+ if(d.garment && window.duavessoStudio.capturePreview && !window.duavessoStudio.is3DActive?.())ctx.drawImage(window.duavessoStudio.capturePreview(d),0,0,1000,1000);
+ if(opts.export||!elsewhere.length)return;
+ // Estampa ativa fora da frente: miniatura da arte com a zona; as demais só aparecem no selo.
+ const activeAway=elsewhere.find(({i})=>i===d.active);
+ if(activeAway)drawAwayInset(ctx,activeAway.q,d,`Estampa ${activeAway.i+1} · ${zoneAt(activeAway.q)}`);
+ const rest=elsewhere.filter(({i})=>i!==d.active);
+ if(rest.length)drawZoneBadge(ctx,rest.map(({i,q})=>`Estampa ${i+1} · ${zoneAt(q)}`),activeAway?700:1000);
 }
-// Desenha só a estampa (texto/imagem ou o marcador do briefing) em um contexto 1000×1000.
-// Com placed=true aplica posição/rotação/escala como na prévia; senão, centrada e sem transformação (textura 3D).
-function drawPrint(c,d,placed){
- c.save();if(placed){c.translate(500+(d.x||0)*3.3,485+d.y*3.3);c.rotate(d.rotation*Math.PI/180);c.scale(d.scale/100,d.scale/100);}else c.translate(500,500);
+function drawAwayInset(c,q,d,label){
+ const w=300,h=356,x=1000-w-28,y=1000-h-28;
+ c.save();c.fillStyle='rgba(255,255,255,.94)';c.strokeStyle='rgba(22,23,25,.18)';c.lineWidth=2;c.beginPath();c.roundRect(x,y,w,h,16);c.fill();c.stroke();
+ c.save();c.beginPath();c.rect(x+12,y+12,w-24,h-70);c.clip();c.translate(x+w/2,y+12+(h-70)/2);c.scale(.82,.82);c.translate(-500,-500);drawPrint(c,q,d,false,false);c.restore();
+ c.fillStyle='#161719';c.font=`700 19px ${fontFamily.sans}`;c.textAlign='center';c.textBaseline='middle';c.fillText(label.toUpperCase(),x+w/2,y+h-40,w-24);
+ c.fillStyle='#64666e';c.font=`600 14px ${fontFamily.sans}`;c.fillText('MOVA NO 3D OU EM “ONDE FICA”',x+w/2,y+h-18,w-24);
+ c.restore();
+}
+function drawZoneBadge(c,lines,right){
+ c.save();c.font=`700 22px ${fontFamily.sans}`;c.textAlign='center';c.textBaseline='middle';
+ const w=Math.max(...lines.map(l=>c.measureText(l.toUpperCase()).width))+56,h=lines.length*34+24,cx=right===1000?500:Math.min(500,(right-w)/2+w/2-40),x=cx-w/2,y=1000-h-28;
+ c.fillStyle='rgba(22,23,25,.82)';c.beginPath();c.roundRect(x,y,w,h,14);c.fill();c.fillStyle='#fff';
+ lines.forEach((l,i)=>c.fillText(l.toUpperCase(),cx,y+12+17+i*34));
+ c.restore();
+}
+// Desenha uma estampa em um contexto 1000×1000. Com placed=true aplica posição/rotação/escala como na prévia;
+// senão, centrada e sem transformação (textura do 3D). `selected` marca a estampa ativa quando há mais de uma.
+function drawPrint(c,p,d,placed,selected){
+ c.save();
+ if(placed){const pos=p.place&&p.place.zone==='front'?{x:p.place.p[0]/UNIT,y:(CHEST_Y-p.place.p[1])/UNIT}:{x:p.x||0,y:p.y||0};c.translate(500+pos.x*3.3,485+pos.y*3.3);c.rotate(p.rotation*Math.PI/180);c.scale(p.scale/100,p.scale/100);}else c.translate(500,500);
  const width=300,height=330;
  if(d.mode==='brief'){drawBriefPlaceholder(c,d,width,height);c.restore();return false;}
+ if(selected){c.save();c.strokeStyle='rgba(23,55,188,.6)';c.lineWidth=2.5;c.setLineDash([12,9]);c.strokeRect(-width/2-8,-height/2-8,width+16,height+16);c.restore();}
  c.beginPath();c.rect(-width/2,-height/2,width,height);c.clip();
- const hasText=d.text.trim().length>0;
+ const img=p.image?imgCache.get(p.image):null;
+ const hasText=(p.text||'').trim().length>0;
  let textTop=-height/2,textHeight=height;
- if(uploadImage){const available=hasText?height*.61:height;const fit=Math.min(width/uploadImage.width,available/uploadImage.height);const w=uploadImage.width*fit,h=uploadImage.height*fit;c.drawImage(uploadImage,-w/2,-height/2+(available-h)/2,w,h);if(hasText){textTop=-height/2+available+10;textHeight=height-available-10;}}
+ if(img){const available=hasText?height*.61:height;const fit=Math.min(width/img.width,available/img.height);const w=img.width*fit,h=img.height*fit;c.drawImage(img,-w/2,-height/2+(available-h)/2,w,h);if(hasText){textTop=-height/2+available+10;textHeight=height-available-10;}}
  if(hasText){
-  const lines=d.text.split('\n');let fontSize=Math.min(100,textHeight/(lines.length*1.03));
-  c.font=`800 ${fontSize}px ${fontFamily[d.font]}`;
+  const lines=p.text.split('\n');let fontSize=Math.min(100,textHeight/(lines.length*1.03));
+  c.font=`800 ${fontSize}px ${fontFamily[p.font]||fontFamily.condensed}`;
   const widest=Math.max(...lines.map(line=>c.measureText(line).width));if(widest>width-8)fontSize*=(width-8)/widest;
-  c.font=`800 ${fontSize}px ${fontFamily[d.font]}`;c.textAlign='center';c.textBaseline='middle';c.fillStyle=d.ink;
+  c.font=`800 ${fontSize}px ${fontFamily[p.font]||fontFamily.condensed}`;c.textAlign='center';c.textBaseline='middle';c.fillStyle=p.placeholder?'rgba(100,102,110,.55)':p.ink;
   const spacing=fontSize*1.03,start=textTop+textHeight/2-(lines.length-1)*spacing/2;
   lines.forEach((line,i)=>c.fillText(line,0,start+i*spacing,width));
  }
  c.restore();return hasText;
 }
-window.duavessoStudio={getDesign,drawPrint:(c,d)=>drawPrint(c,d,false),ready:()=>readyDesign,artworkVersion:()=>uploadGeneration};
+window.duavessoStudio={getDesign,drawPrint:(c,p,d)=>drawPrint(c,p,d,false,false),ready:()=>readyDesign,updatePrint,selectPrint,MAX_PRINTS};
 function drawBriefPlaceholder(ctx,d,width,height){
  const ink=d.color==='white'?'#1737bc':'#f7f8f9';
  ctx.strokeStyle=ink;ctx.lineWidth=3;ctx.setLineDash([14,10]);ctx.strokeRect(-width/2,-height/2,width,height);ctx.setLineDash([]);
@@ -210,27 +295,40 @@ function drawBriefPlaceholder(ctx,d,width,height){
  ctx.font=`600 15px ${fontFamily.sans}`;ctx.fillText(d.brief?'A PARTIR DA SUA DESCRIÇÃO':'DESCREVA A IDEIA AO LADO',0,78,width-24);
 }
 const readyDesign=Promise.all([loadImage('assets/tee-white-1000.webp'),loadImage('assets/tee-black-1000.webp'),document.fonts.ready]).then(([white,black])=>{imageCache.white=white;imageCache.black=black;designReady=true;renderDesign();}).catch(()=>toast('Não foi possível carregar a base da camiseta. Atualize a página para tentar de novo.'));
-$('#design-form').addEventListener('input',e=>{if(e.target.id==='design-brief')$('#brief-count').textContent=e.target.value.length;if(e.target.id==='design-ink')syncSwatches();if(e.target.type!=='file')renderDesign();});
+$('#design-form').addEventListener('input',e=>{if(e.target.id==='design-brief')$('#brief-count').textContent=e.target.value.length;if(e.target.id==='design-ink')syncSwatches();if(e.target.id==='design-text')prints[activePrint].placeholder=false;if(e.target.id==='design-x'||e.target.id==='design-y')prints[activePrint].place=null;if(e.target.type!=='file')renderDesign();});
 $('#design-form').addEventListener('change',e=>{if(e.target.type!=='file')renderDesign();});
 $('#design-color').addEventListener('change',()=>{$('#design-garment').value='';});
-function clearUpload(){uploadGeneration++;uploadImage=null;uploadData=null;$('#design-upload').value='';$('#remove-upload').hidden=true;$('#upload-status').textContent='Use uma imagem sua ou que você tenha autorização para usar.';renderDesign();}
+function clearUpload(){const p=prints[activePrint];p.image=null;p.rev++;$('#design-upload').value='';$('#remove-upload').hidden=true;$('#upload-status').textContent='Use uma imagem sua ou que você tenha autorização para usar.';renderDesign();}
 $('#remove-upload').addEventListener('click',clearUpload);
 $('#design-upload').addEventListener('change',async e=>{
  const file=e.target.files[0];if(!file)return;
- const generation=++uploadGeneration;
+ const p=prints[activePrint],generation=++p.rev;
  if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5*1024*1024){$('#upload-status').textContent='Escolha PNG, JPG ou WebP de até 5 MB.';e.target.value='';return;}
  $('#upload-status').textContent='Preparando sua imagem…';
- try{const url=await readAsDataURL(file);const original=await loadImage(url);if(original.width*original.height>40000000)throw new Error('Imagem muito grande. Use uma versão com até 40 megapixels.');const temp=document.createElement('canvas');const ratio=Math.min(1,700/Math.max(original.width,original.height));temp.width=Math.round(original.width*ratio);temp.height=Math.round(original.height*ratio);temp.getContext('2d').drawImage(original,0,0,temp.width,temp.height);const data=temp.toDataURL('image/webp',.85),image=await loadImage(data);if(generation!==uploadGeneration)return;uploadData=data;uploadImage=image;$('#remove-upload').hidden=false;$('#upload-status').textContent=`${file.name} · imagem pronta`;renderDesign();}catch(error){if(generation===uploadGeneration){$('#upload-status').textContent=error.message||'Não foi possível ler esse arquivo. Escolha outra imagem.';e.target.value='';}}
+ try{const url=await readAsDataURL(file);const original=await loadImage(url);if(original.width*original.height>40000000)throw new Error('Imagem muito grande. Use uma versão com até 40 megapixels.');const temp=document.createElement('canvas');const ratio=Math.min(1,700/Math.max(original.width,original.height));temp.width=Math.round(original.width*ratio);temp.height=Math.round(original.height*ratio);temp.getContext('2d').drawImage(original,0,0,temp.width,temp.height);const data=temp.toDataURL('image/webp',.85),image=await loadImage(data);if(generation!==p.rev)return;imgCache.set(data,image);p.image=data;if(p.placeholder){p.placeholder=false;p.text='';}if(prints[activePrint]===p){$('#design-text').value=p.text;$('#remove-upload').hidden=false;$('#upload-status').textContent=`${file.name} · imagem pronta`;}renderDesign();}catch(error){if(generation===p.rev){$('#upload-status').textContent=error.message||'Não foi possível ler esse arquivo. Escolha outra imagem.';}}
+ finally{e.target.value='';}
 });
-$('#reset-design').addEventListener('click',()=>{for(const [key,value] of Object.entries(designDefaults))$(`#design-${key}`).value=value;$('#brief-count').textContent='0';syncSwatches();clearUpload();setMode('create');toast('Estúdio pronto para uma nova ideia.');});
-$('#download-design').addEventListener('click',async()=>{await readyDesign;if(!designReady)return;renderDesign();const source=window.duavessoStudio.capturePreview?.()||canvas;source.toBlob(blob=>{if(!blob){toast('Não foi possível gerar a prévia. Tente novamente.');return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='duavesso-minha-camiseta.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},'image/png');});
+$('#reset-design').addEventListener('click',()=>{for(const [key,value] of Object.entries(designDefaults))$(`#design-${key}`).value=value;$('#brief-count').textContent='0';prints=[{...printDefaults}];activePrint=0;writePrintFields();setMode('create');toast('Estúdio pronto para uma nova ideia.');});
+// Prévia limpa para download e sacola: carrega o 3D quando há estampa fora da frente (para compor costas/mangas).
+async function exportPreview(d){
+ if(d.mode!=='brief'&&d.prints.some(p=>p.place&&p.place.zone!=='front')&&!window.duavessoStudio.capturePreview&&window.duavessoStudio.ensure3D){toast('Preparando a prévia das costas e mangas…');try{await window.duavessoStudio.ensure3D();}catch{}}
+ renderDesign({export:true});
+ const out=document.createElement('canvas');out.width=out.height=1000;out.getContext('2d').drawImage(window.duavessoStudio.capturePreview?.(d)||canvas,0,0,1000,1000);
+ renderDesign();return out;
+}
+$('#download-design').addEventListener('click',async()=>{await readyDesign;if(!designReady)return;const source=await exportPreview(getDesign());source.toBlob(blob=>{if(!blob){toast('Não foi possível gerar a prévia. Tente novamente.');return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='duavesso-minha-camiseta.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},'image/png');});
 $('#design-form').addEventListener('submit',async e=>{
  e.preventDefault();await readyDesign;if(!designReady)return;
  const d=getDesign();
  if(d.mode==='brief'){if(d.brief.length<10){toast('Descreva sua ideia com pelo menos 10 caracteres para a equipe entender.');$('#design-brief').focus();return;}}
- else if(!d.text.trim()&&!uploadImage){toast('Adicione um texto ou uma imagem à sua estampa.');$('#design-text').focus();return;}
- renderDesign();const thumb=document.createElement('canvas');thumb.width=500;thumb.height=500;thumb.getContext('2d').drawImage(window.duavessoStudio.capturePreview?.()||canvas,0,0,500,500);
- const design=d.mode==='brief'?{mode:'brief',color:d.color,garment:d.garment,size:d.size,brief:d.brief,scale:d.scale,x:d.x,y:d.y,rotation:d.rotation}:{...d,brief:undefined,image:uploadData};
+ else{
+  const filled=d.prints.filter(isFilled),dropped=d.prints.map((p,i)=>isFilled(p)?null:`estampa ${i+1} (${zoneAt(p)})`).filter(Boolean);
+  if(!filled.length){toast('Adicione um texto ou uma imagem à sua estampa.');$('#design-text').focus();return;}
+  if(dropped.length)toast(`Sem texto ou imagem, ficou de fora: ${dropped.join(', ')}.`);
+  d.prints=filled;
+ }
+ const source=await exportPreview(d),thumb=document.createElement('canvas');thumb.width=500;thumb.height=500;thumb.getContext('2d').drawImage(source,0,0,500,500);
+ const design=d.mode==='brief'?{mode:'brief',color:d.color,garment:d.garment,size:d.size,brief:d.brief}:{mode:'create',color:d.color,garment:d.garment,size:d.size,prints:d.prints.map(({rev,placeholder,...p})=>p)};
  const item={id:'custom',key:`custom-${crypto.randomUUID()}`,name:CUSTOM[d.mode].name,category:'custom',base:d.color,color:garmentLabel(design),size:d.size,price:CUSTOM[d.mode].price,preview:thumb.toDataURL('image/jpeg',.85),design};
  try{cart=addItem(cart,item);saveCart();showCart();}catch(error){toast(error.message);}
 });

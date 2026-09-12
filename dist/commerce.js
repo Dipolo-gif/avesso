@@ -39,14 +39,40 @@ export function changeQuantity(items,key,delta){
  return items.map(x=>x.key===key?{...x,qty:Math.min(10,x.qty+delta)}:x).filter(x=>x.qty>0);
 }
 export function validImageURL(value){return typeof value==='string'&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(value)&&value.length<1500000;}
+// Zonas da peça onde uma estampa pode ficar (rótulo em português para carrinho/pedido).
+export const PRINT_ZONES={front:'frente',back:'costas','sleeve-left':'manga esquerda','sleeve-right':'manga direita',side:'lateral'};
+export const PRINT_ZONE_AT={front:'na frente',back:'nas costas','sleeve-left':'na manga esquerda','sleeve-right':'na manga direita',side:'na lateral'};
+export const isZone=z=>typeof z==='string'&&Object.hasOwn(PRINT_ZONES,z);
+export const MAX_PRINTS=4;
+const str=(v,max)=>typeof v==='string'?v.slice(0,max):'';
+const num=(v,min,max,fallback)=>Number.isFinite(v)?Math.min(max,Math.max(min,v)):fallback;
+function sanitizePlace(v){
+ if(!v||typeof v!=='object'||!isZone(v.zone))return null;
+ const vec=k=>Array.isArray(v[k])&&v[k].length===3&&v[k].every(x=>Number.isFinite(x)&&Math.abs(x)<=2)?v[k].map(x=>Math.round(x*1e4)/1e4):null;
+ const p=vec('p'),n=vec('n');if(!p||!n)return null;
+ return {p,n,zone:v.zone};
+}
+// Uma estampa: texto e/ou imagem, tamanho, rotação e lugar (sliders x/y na frente, ou place em qualquer zona).
+// image_path nunca vem da sacola: só o checkout o cria, depois de subir a arte.
+export function sanitizePrint(p){
+ if(!p||typeof p!=='object')return null;
+ return {text:str(p.text,70),font:['condensed','sans','serif'].includes(p.font)?p.font:'condensed',ink:/^#[0-9a-f]{6}$/i.test(p.ink)?p.ink:'#1737bc',scale:num(p.scale,45,100,80),x:num(p.x,-30,30,0),y:num(p.y,-25,25,0),rotation:num(p.rotation,-15,15,0),place:sanitizePlace(p.place),image:validImageURL(p.image)?p.image:null};
+}
 export function sanitizeDesign(d){
  if(!d||typeof d!=='object')return null;
  const mode=d.mode==='brief'?'brief':'create';
- const str=(v,max)=>typeof v==='string'?v.slice(0,max):'';
- const num=(v,min,max,fallback)=>Number.isFinite(v)?Math.min(max,Math.max(min,v)):fallback;
- const base={mode,color:['white','black'].includes(d.color)?d.color:'white',garment:/^#[0-9a-f]{6}$/i.test(d.garment)?d.garment.toLowerCase():'',size:SIZES.includes(d.size)?d.size:'M',scale:num(d.scale,45,100,80),x:num(d.x,-30,30,0),y:num(d.y,-25,25,0),rotation:num(d.rotation,-15,15,0)};
+ const base={mode,color:['white','black'].includes(d.color)?d.color:'white',garment:/^#[0-9a-f]{6}$/i.test(d.garment)?d.garment.toLowerCase():'',size:SIZES.includes(d.size)?d.size:'M'};
  if(mode==='brief')return {...base,brief:str(d.brief,400)};
- return {...base,text:str(d.text,70),font:['condensed','sans','serif'].includes(d.font)?d.font:'condensed',ink:/^#[0-9a-f]{6}$/i.test(d.ink)?d.ink:'#1737bc',image:validImageURL(d.image)?d.image:null};
+ // Pedidos/sacolas antigos guardavam uma estampa só nos campos de cima; viram uma lista de 1.
+ const list=(Array.isArray(d.prints)?d.prints:[d]).slice(0,MAX_PRINTS).map(sanitizePrint).filter(Boolean);
+ return {...base,prints:list.length?list:[sanitizePrint({})]};
+}
+export const printZone=p=>isZone(p?.place?.zone)?p.place.zone:'front';
+export const printZoneLabel=p=>PRINT_ZONES[printZone(p)];
+export function printsSummary(design){
+ const prints=design?.prints||[];
+ if(prints.length<=1)return `Estampa ${PRINT_ZONE_AT[printZone(prints[0])]}`;
+ return `${prints.length} estampas: ${prints.map(printZoneLabel).join(', ')}`;
 }
 export function normalizeCart(value){
  if(!Array.isArray(value))return [];

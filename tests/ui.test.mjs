@@ -5,6 +5,7 @@ import {JSDOM} from 'jsdom';
 const html=await readFile(new URL('../dist/index.html',import.meta.url),'utf8');
 const commerce=(await readFile(new URL('../dist/commerce.js',import.meta.url),'utf8')).replaceAll('export ','');
 const api=(await readFile(new URL('../dist/api.js',import.meta.url),'utf8')).replaceAll('export ','');
+const placement=(await readFile(new URL('../dist/studio-placement.js',import.meta.url),'utf8')).replaceAll('export ','');
 const app=(await readFile(new URL('../dist/app.js',import.meta.url),'utf8')).replace(/^import .*?;\r?\n/gm,'');
 async function setup(storage={},fetchStub){
  const dom=new JSDOM(html,{url:'http://localhost/',runScripts:'outside-only',pretendToBeVisual:true});
@@ -14,14 +15,14 @@ async function setup(storage={},fetchStub){
  w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'));};
  Object.defineProperty(w.document,'fonts',{value:{ready:Promise.resolve()}});
  w.Image=class {width=1000;height=1000;set src(value){this._src=value;queueMicrotask(()=>this.onload?.());}get src(){return this._src;}};
- w.HTMLCanvasElement.prototype.getContext=()=>({clearRect(){},drawImage(){},save(){},translate(){},rotate(){},scale(){},beginPath(){},rect(){},clip(){},measureText(t){return {width:t.length*45};},fillText(){},restore(){},setLineDash(){},strokeRect(){},fillRect(){}});
+ w.HTMLCanvasElement.prototype.getContext=()=>({clearRect(){},drawImage(){},save(){},translate(){},rotate(){},scale(){},beginPath(){},rect(){},clip(){},measureText(t){return {width:t.length*45};},fillText(){},restore(){},setLineDash(){},strokeRect(){},fillRect(){},roundRect(){},fill(){},stroke(){}});
  w.HTMLCanvasElement.prototype.toDataURL=()=> 'data:image/jpeg;base64,AA==';
  w.HTMLCanvasElement.prototype.toBlob=function(cb){cb(new w.Blob(['test'],{type:'image/png'}));};
  for(const [key,value] of Object.entries(storage))w.localStorage.setItem(key,JSON.stringify(value));
  const registry=new Map();
  Object.defineProperty(w.document,'modelContext',{value:{registerTool(tool){registry.set(tool.name,tool);}}});
  if(fetchStub)w.fetch=fetchStub;
- w.eval(commerce+'\n'+api+'\nconst esc=escapeHTML;\n'+app);
+ w.eval(commerce+'\n'+api+'\n'+placement+'\nconst esc=escapeHTML;\n'+app);
  await new Promise(resolve=>setTimeout(resolve,10));
  return {dom,w,doc:w.document,registry,click(selector){const e=w.document.querySelector(selector);assert(e,`Missing ${selector}`);e.click();},close(){dom.window.close();}};
 }
@@ -54,7 +55,7 @@ test('customized variant includes snapshot and survives cart reload',async()=>{
  s.w.location.hash='estudio';await new Promise(r=>setTimeout(r,10));assert.equal(s.doc.querySelector('#studio-view').hidden,false);
  s.doc.querySelector('#design-text').value='MINHA IDEIA';s.doc.querySelector('#design-size').value='GG';
  s.doc.querySelector('#design-form').dispatchEvent(new s.w.Event('submit',{bubbles:true,cancelable:true}));await new Promise(r=>setTimeout(r,10));
- saved=JSON.parse(s.w.localStorage.getItem('duavesso.cart.v1'));assert.equal(saved[0].size,'GG');assert.equal(saved[0].design.text,'MINHA IDEIA');assert(saved[0].preview.startsWith('data:image/jpeg'));assert.equal(saved[0].price,12990);
+ saved=JSON.parse(s.w.localStorage.getItem('duavesso.cart.v1'));assert.equal(saved[0].size,'GG');assert.equal(saved[0].design.prints[0].text,'MINHA IDEIA');assert.equal(saved[0].design.prints.length,1);assert(saved[0].preview.startsWith('data:image/jpeg'));assert.equal(saved[0].price,12990);
  }finally{s.close();}
  const r=await setup({'duavesso.cart.v1':saved});try{r.click('#open-cart');assert.equal(r.doc.querySelector('#cart-count').textContent,'1');assert(r.doc.querySelector('.cart-thumb img').src.startsWith('data:image/jpeg'));}finally{r.close();}
 });
@@ -143,4 +144,39 @@ test('accounts: signup asks for confirmation, login updates header, account list
  s.doc.querySelector('#checkout-dialog').close();s.click('#open-account');await new Promise(r=>setTimeout(r,30));s.click('#sign-out');await new Promise(r=>setTimeout(r,20));
  assert.equal(s.doc.querySelector('#open-auth').hidden,false);assert.equal(s.w.localStorage.getItem('duavesso.session.v1'),null);
  }finally{s.close();}
+});
+test('several prints: free zones, 2D zone buttons, placeholders left out of the order, tabs keep focus',async()=>{
+ const s=await setup();let saved;try{
+ s.w.location.hash='estudio';await new Promise(r=>setTimeout(r,10));
+ const tabs=()=>[...s.doc.querySelectorAll('#print-tabs [data-print]')];
+ const type=(text)=>{s.doc.querySelector('#design-text').value=text;s.doc.querySelector('#design-text').dispatchEvent(new s.w.Event('input',{bubbles:true}));};
+ assert.equal(tabs().length,1);assert.equal(s.doc.querySelector('#print-tabs [role=tab]').getAttribute('tabindex'),'0');
+ assert.equal(s.doc.querySelector('#print-tabs #add-print'),null,'botões de ação ficam fora do tablist');
+ type('FRENTE');
+ s.click('#add-print');assert.equal(tabs().length,2);assert.equal(tabs()[1].getAttribute('aria-selected'),'true');
+ assert.equal(s.doc.querySelector('#design-text').value,'SUA\nESTAMPA');assert(tabs()[1].textContent.includes('costas'));
+ assert.equal(s.doc.querySelector('#design-x').disabled,true,'posição por slider só vale na frente');
+ assert.equal(s.doc.querySelector('#position-output').textContent,'Nas costas · mova no 3D');
+ assert.equal(s.doc.querySelector('#zone-buttons [data-place=back]').getAttribute('aria-pressed'),'true');
+ // seletor 2D "Onde fica" move a estampa ativa sem abrir o 3D
+ s.click('#zone-buttons [data-place="sleeve-left"]');assert(tabs()[1].textContent.includes('manga esquerda'));
+ assert.equal(s.doc.querySelector('#remove-print').getAttribute('aria-label'),'Remover estampa 2 (manga esquerda)');
+ type('COSTAS');
+ const d=s.w.duavessoStudio.getDesign();assert.equal(d.prints.map(p=>p.text).join('|'),'FRENTE|COSTAS');assert.equal(d.prints[1].place.zone,'sleeve-left');assert.equal(d.active,1);assert.equal(d.prints[1].placeholder,false);
+ s.click('#zone-buttons [data-place="front"]');assert.equal(s.w.duavessoStudio.getDesign().prints[1].place,null);assert.equal(s.doc.querySelector('#design-x').disabled,false);
+ s.w.duavessoStudio.updatePrint(1,{place:{p:[.3,.5,0],n:[1,0,0],zone:'sleeve-left'}});
+ // trocar de aba mantém o foco na aba e limpa o input de arquivo
+ s.doc.querySelector('#design-upload').value='';tabs()[0].click();assert.equal(s.doc.activeElement,tabs()[0]);assert.equal(s.doc.querySelector('#design-text').value,'FRENTE');assert.equal(s.doc.querySelector('#design-x').disabled,false);
+ s.click('#add-print');s.click('#add-print');assert.equal(tabs().length,4);assert.equal(s.doc.querySelector('#add-print'),null,'máximo de 4 estampas');
+ assert.equal(s.w.duavessoStudio.getDesign().prints.map(p=>p.place?.zone||'front').join(','),'front,sleeve-left,back,sleeve-right','cada nova estampa nasce numa zona livre');
+ s.click('#remove-print');assert.equal(tabs().length,3);assert.equal(s.doc.activeElement,tabs()[2]);
+ // modo "Descrever a ideia" não herda zona: sliders livres
+ s.click('[data-mode="brief"]');assert.equal(s.doc.querySelector('#design-x').disabled,false);s.click('[data-mode="create"]');
+ s.doc.querySelector('#design-form').dispatchEvent(new s.w.Event('submit',{bubbles:true,cancelable:true}));await new Promise(r=>setTimeout(r,30));
+ saved=JSON.parse(s.w.localStorage.getItem('duavesso.cart.v1'));
+ assert.equal(saved[0].design.prints.map(p=>p.text).join('|'),'FRENTE|COSTAS','texto-modelo intacto fica de fora do pedido');
+ assert.equal(saved[0].design.prints[1].place.zone,'sleeve-left');assert.equal(saved[0].design.image,undefined);assert.equal('placeholder' in saved[0].design.prints[0],false);
+ assert(s.doc.querySelector('#toast').textContent.includes('ficou de fora: estampa 3 (nas costas)'));
+ }finally{s.close();}
+ const r=await setup({'duavesso.cart.v1':saved});try{r.click('#open-cart');assert(r.doc.querySelector('#cart-content').textContent.includes('2 estampas: frente, manga esquerda'));}finally{r.close();}
 });
