@@ -47,7 +47,7 @@ function friendlyAuthError(body){
 async function handle(response){
  if(response.ok)return response.status===204?null:response.json();
  let message='Não foi possível falar com a loja agora. Tente de novo em instantes.';
- try{const error=await response.json();if(USER_ERRORS.has(error.code)&&typeof error.message==='string')message=error.message;else if(error.msg||error.error_code||error.error_description||error.error)message=friendlyAuthError(error);}catch{}
+ try{const error=await response.json();if(error.code==='23505')message='Este CPF já está cadastrado em outra conta. Cada CPF pode ter só uma conta.';else if(USER_ERRORS.has(error.code)&&typeof error.message==='string')message=error.message;else if(error.msg||error.error_code||error.error_description||error.error)message=friendlyAuthError(error);}catch{}
  throw new Error(message);
 }
 async function authFetch(path,body,method='POST',extra={}){
