@@ -80,3 +80,11 @@
 .tee-zones button{padding:5px 10px;border:1px solid rgba(22,23,25,.2);border-radius:999px;background:#fff;font:600 11px/1 var(--body);letter-spacing:.04em;text-transform:none;color:var(--ink);cursor:pointer}
 .tee-zones button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
 input[type=range]:disabled{opacity:.4}
+
+.product-visual.poses .pose{position:absolute;inset:0;opacity:0;transition:opacity .5s ease}
+.product-visual.poses .pose.is-active{opacity:1}
+.product-visual.poses .pose picture{display:block;height:100%}
+.product-visual.poses .pose img{width:100%;height:100%;object-fit:cover;object-position:center 26%}
+.detail-visual.gallery{display:grid;gap:3px;background:#eeeff1;align-self:start}
+.detail-visual.gallery .product-visual{position:relative;aspect-ratio:1024/1536}
+.detail-visual.gallery .product-visual img{width:100%;height:100%;object-fit:cover}

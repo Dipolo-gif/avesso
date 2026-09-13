@@ -80,7 +80,7 @@ test('imperative tools register with schemas and reject invalid writes without c
  const result=add.execute({productId:'heavy-avesso',size:'M'});assert.equal(result.added,true);assert.equal(read.execute({}).totals.count,1);assert.equal(s.doc.querySelector('#cart-count').textContent,'1');assert(s.doc.querySelector('#cart-dialog').open);
  }finally{s.close();}
 });
-test('with the API online the catalog comes from the server and checkout submits an order without client prices',async()=>{
+test('the catalog stays local (stale server products ignored) and online checkout submits server-priced orders',async()=>{
  const calls=[];
  const fetchStub=async(url,init={})=>{
   calls.push({url:String(url),init});
@@ -92,14 +92,16 @@ test('with the API online the catalog comes from the server and checkout submits
  };
  const s=await setup({},fetchStub);try{
  await new Promise(r=>setTimeout(r,20));
- assert.equal(s.doc.querySelectorAll('.product-card').length,1);assert(s.doc.querySelector('.product-card .price').textContent.includes('123,45'));
- s.click('[data-product="off-line"]');s.click('[data-size="M"]');s.click('#add-product');s.click('#begin-checkout');
+ assert.equal(s.doc.querySelectorAll('.product-card').length,6,'catálogo curado local (6 peças), não a tabela antiga do servidor');
+ assert.equal(s.doc.querySelector('[data-product="off-line"]'),null,'produto antigo do servidor é ignorado');
+ assert(s.doc.querySelector('[data-product="americana-off"]'),'produto local presente');
+ s.click('[data-product="americana-off"]');s.click('[data-size="M"]');s.click('#add-product');s.click('#begin-checkout');
  assert.equal(s.doc.querySelector('#fill-demo'),null);
  const form=s.doc.querySelector('#checkout-form');
  for(const [k,v] of Object.entries({name:'Cliente Real',email:'cliente@example.com',cep:'60000-000',city:'Fortaleza',address:'Rua Um, 10'}))form.elements.namedItem(k).value=v;
  form.dispatchEvent(new s.w.Event('submit',{bubbles:true,cancelable:true}));await new Promise(r=>setTimeout(r,30));
  const order=calls.find(c=>c.url.includes('place_order'));assert(order);const body=JSON.parse(order.init.body);
- assert.deepEqual(body.p_items,[{kind:'catalog',product_id:'off-line',size:'M',qty:1}]);assert.equal(body.p_customer.email,'cliente@example.com');
+ assert.deepEqual(body.p_items,[{kind:'catalog',product_id:'americana-off',size:'M',qty:1}]);assert.equal(body.p_customer.email,'cliente@example.com');
  assert(order.init.headers.apikey.startsWith('sb_publishable_'));
  assert(s.doc.querySelector('.order-id').textContent.includes('AV-TEST-0001'));assert.equal(s.doc.querySelector('#cart-count').textContent,'0');
  const raw=s.w.localStorage.getItem('duavesso.orders.v1');assert(raw.includes('AV-TEST-0001'));assert(!raw.includes('cliente@example.com'));
@@ -107,6 +109,19 @@ test('with the API online the catalog comes from the server and checkout submits
  const lookup=s.doc.querySelector('#order-lookup');assert(lookup);lookup.elements.namedItem('code').value='AV-TEST-0001';lookup.elements.namedItem('email').value='cliente@example.com';
  lookup.dispatchEvent(new s.w.Event('submit',{bubbles:true,cancelable:true}));await new Promise(r=>setTimeout(r,20));
  assert(s.doc.querySelector('#lookup-result').textContent.includes('Em produção'));
+ }finally{s.close();}
+});
+test('produto de fotos: card com 3 poses e modal com galeria das 3',async()=>{
+ const s=await setup();try{
+ const card=s.doc.querySelector('[data-product="heavy-avesso"]');assert(card);
+ assert(card.querySelector('.product-visual.poses'),'card usa poses (fotos reais)');
+ assert.equal(card.querySelectorAll('.product-visual.poses .pose').length,3);
+ assert.equal(card.querySelectorAll('.pose.is-active').length,1,'uma pose ativa por padrão');
+ assert.equal(card.querySelector('.product-graphic'),null,'sem overlay de texto quando há foto');
+ s.click('[data-product="heavy-avesso"]');
+ const gallery=s.doc.querySelector('#product-detail .detail-visual.gallery');assert(gallery,'modal abre com galeria');
+ assert.equal(gallery.querySelectorAll('.product-visual').length,3,'as 3 poses aparecem no modal');
+ assert(s.doc.querySelector('#product-detail [data-size="M"]'),'ainda dá pra escolher tamanho');
  }finally{s.close();}
 });
 test('accounts: signup asks for confirmation, login updates header, account lists orders, checkout prefills, logout clears',async()=>{
