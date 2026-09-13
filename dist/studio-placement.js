@@ -1,5 +1,5 @@
 // Posicionamento da estampa em metros, no espaço da peça. Compartilhado por render, interação e testes.
-// Uma estampa tem um "lugar": {p:[x,y,z], n:[nx,ny,nz], zone} — ponto e normal na superfície da camiseta.
+// Uma estampa tem um "lugar": {p:[x,y,z], n:[nx,ny,nz], zone}: ponto e normal na superfície da camiseta.
 // Estampas na frente dentro da área dos sliders usam só (x, y) (compatível com a prévia 2D e pedidos antigos).
 export const CHEST_Y = .44;
 export const UNIT = .0034;

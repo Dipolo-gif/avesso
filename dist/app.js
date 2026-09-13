@@ -12,15 +12,15 @@ function teePicture(base,alt,sizes,attrs=''){return `<picture><source type="imag
 const PHOTO_WIDTHS=[400,800,1024];
 function photoPicture(name,alt,sizes,attrs=''){return `<picture><source type="image/webp" srcset="${PHOTO_WIDTHS.map(w=>`assets/${name}-${w}.webp ${w}w`).join(', ')}" sizes="${sizes}"><img src="assets/${name}-1024.jpg" alt="${alt}" width="1024" height="1536" decoding="async" ${attrs}></picture>`;}
 const photosOf=p=>Array.isArray(p.photos)&&p.photos.length?p.photos:null;
-function cardVisual(p){const ph=photosOf(p);if(!ph)return `<div class="product-visual">${teePicture(p.base,`${p.name}, ${p.color}`,'(max-width:700px) 48vw, 24vw','loading="lazy"')}${graphicHTML(p)}</div>`;return `<div class="product-visual poses">${ph.map((n,i)=>`<div class="pose${i?'':' is-active'}">${photoPicture(n,`${p.name}, ${p.color} — pose ${i+1}`,'(max-width:700px) 48vw, 24vw','loading="lazy"')}</div>`).join('')}</div>`;}
-function detailVisual(p){const ph=photosOf(p);if(!ph)return `<div class="detail-visual"><div class="product-visual">${teePicture(p.base,p.name,'(max-width:700px) 94vw, 450px')}${graphicHTML(p)}</div></div>`;return `<div class="detail-visual gallery">${ph.map((n,i)=>`<div class="product-visual pose-full">${photoPicture(n,`${p.name} — pose ${i+1} de ${ph.length}`,'(max-width:700px) 94vw, 430px')}</div>`).join('')}</div>`;}
+function cardVisual(p){const ph=photosOf(p);if(!ph)return `<div class="product-visual">${teePicture(p.base,`${p.name}, ${p.color}`,'(max-width:700px) 48vw, 24vw','loading="lazy"')}${graphicHTML(p)}</div>`;return `<div class="product-visual poses">${ph.map((n,i)=>`<div class="pose${i?'':' is-active'}">${photoPicture(n,`${p.name}, ${p.color}, pose ${i+1}`,'(max-width:700px) 48vw, 24vw','loading="lazy"')}</div>`).join('')}</div>`;}
+function detailVisual(p){const ph=photosOf(p);if(!ph)return `<div class="detail-visual"><div class="product-visual">${teePicture(p.base,p.name,'(max-width:700px) 94vw, 450px')}${graphicHTML(p)}</div></div>`;return `<div class="detail-visual gallery">${ph.map((n,i)=>`<div class="product-visual pose-full">${photoPicture(n,`${p.name}, pose ${i+1} de ${ph.length}`,'(max-width:700px) 94vw, 430px')}</div>`).join('')}</div>`;}
 function wirePoseHovers(){if(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;$$('.product-visual.poses').forEach(v=>{const poses=$$('.pose',v);if(poses.length<2)return;let idx=0,timer=null;const show=i=>poses.forEach((el,k)=>el.classList.toggle('is-active',k===i));const stop=()=>{clearInterval(timer);timer=null;idx=0;show(0);};const start=()=>{if(timer)return;timer=setInterval(()=>{idx=(idx+1)%poses.length;show(idx);},760);};const host=v.closest('.product-image-button')||v;host.addEventListener('mouseenter',start);host.addEventListener('mouseleave',stop);host.addEventListener('focusin',start);host.addEventListener('focusout',stop);});}
 function renderCatalog(){
  const query=$('#search').value.trim().toLocaleLowerCase('pt-BR');
  let products=PRODUCTS.filter(p=>(filter==='all'||p.category===filter)&&`${p.name} ${p.color}`.toLocaleLowerCase('pt-BR').includes(query));
  if($('#sort').value==='price-low')products.sort((a,b)=>a.price-b.price);
  if($('#sort').value==='price-high')products.sort((a,b)=>b.price-a.price);
- $('#product-grid').innerHTML=products.map((p,i)=>`<article class="product-card"><button class="product-image-button" data-product="${p.id}"><span class="sr-only">Ver ${p.name}: </span>${cardVisual(p)}<span class="product-tag">${p.tag}</span><span class="product-add" aria-hidden="true">＋</span></button><div class="product-meta"><h3><a href="#produto-${p.id}">${p.name}</a></h3><span class="price">${money(p.price)}</span></div><p class="installments">${INSTALLMENTS}x de ${money(installment(p.price))} sem juros</p><div class="product-sub"><span><i class="color-dot" style="background:${p.swatch}"></i>${p.color}</span><span>P — GG</span></div></article>`).join('');
+ $('#product-grid').innerHTML=products.map((p,i)=>`<article class="product-card"><button class="product-image-button" data-product="${p.id}"><span class="sr-only">Ver ${p.name}: </span>${cardVisual(p)}<span class="product-tag">${p.tag}</span><span class="product-add" aria-hidden="true">＋</span></button><div class="product-meta"><h3><a href="#produto-${p.id}">${p.name}</a></h3><span class="price">${money(p.price)}</span></div><p class="installments">${INSTALLMENTS}x de ${money(installment(p.price))} sem juros</p><div class="product-sub"><span><i class="color-dot" style="background:${p.swatch}"></i>${p.color}</span><span>P a GG</span></div></article>`).join('');
  $('#product-count').textContent=`${products.length} ${products.length===1?'peça':'peças'} / coleção 01`;
  $('#empty-search').hidden=products.length>0;
  wirePoseHovers();
@@ -163,7 +163,7 @@ const imageCache={};
 function loadImage(src){return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('Não foi possível carregar a imagem.'));img.src=src;});}
 function readAsDataURL(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error('Não foi possível ler esse arquivo. Escolha outra imagem.'));r.readAsDataURL(file);});}
 let designReady=false;
-// Estampas: até MAX_PRINTS por peça, editadas uma por vez — o formulário sempre mostra a estampa ativa.
+// Estampas: até MAX_PRINTS por peça, editadas uma por vez; o formulário sempre mostra a estampa ativa.
 // Cada estampa tem texto e/ou imagem, tamanho, rotação e um lugar: (x, y) na frente ou `place` em qualquer zona da peça.
 const designDefaults={color:'white',garment:'',size:'M',brief:''};
 const printDefaults={text:'DO MEU\nJEITO.',font:'condensed',ink:'#1737bc',scale:80,x:0,y:0,rotation:0,place:null,image:null,rev:0,placeholder:false};
@@ -347,7 +347,7 @@ $('#design-form').addEventListener('submit',async e=>{
 function route(){
  const hash=location.hash||'#inicio',studio=hash==='#estudio';
  $('#shop-view').hidden=studio;$('#studio-view').hidden=!studio;document.documentElement.classList.toggle('studio',studio);
- document.title=studio?'Crie sua camiseta personalizada — duavesso Studio':'duavesso — Camisetas oversized e estampas personalizadas';
+ document.title=studio?'Crie sua camiseta personalizada · duavesso Studio':'duavesso · Camisetas oversized e estampas personalizadas';
  if(hash.startsWith('#produto-'))showProduct(hash.slice(9));
  if(studio){window.scrollTo({top:0,behavior:'instant'});renderDesign();}
  else if(['#inicio','#colecao','#sobre'].includes(hash))requestAnimationFrame(()=>$(hash).scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
@@ -389,7 +389,7 @@ $('#login-form').addEventListener('submit',e=>{
 });
 $('#signup-form').addEventListener('submit',e=>{
  e.preventDefault();const form=e.target;if(!form.reportValidity())return;
- busy(form,async()=>{const result=await signUp(form.elements.namedItem('email').value.trim(),form.elements.namedItem('password').value,form.elements.namedItem('name').value.trim());form.reset();if(result.confirmed){closeDialog($('#auth-dialog'));toast('Conta criada. Bem-vindo à duavesso.');}else setAuthStatus('Conta criada! Enviamos um e-mail de confirmação — abra o link para ativar e depois entre aqui.','ok');});
+ busy(form,async()=>{const result=await signUp(form.elements.namedItem('email').value.trim(),form.elements.namedItem('password').value,form.elements.namedItem('name').value.trim());form.reset();if(result.confirmed){closeDialog($('#auth-dialog'));toast('Conta criada. Bem-vindo à duavesso.');}else setAuthStatus('Conta criada! Enviamos um e-mail de confirmação. Abra o link para ativar e depois entre aqui.','ok');});
 });
 $('#forgot-password').addEventListener('click',async()=>{
  const email=$('#login-form input[name=email]').value.trim();

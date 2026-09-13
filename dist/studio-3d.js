@@ -1,7 +1,7 @@
 // Lazy-loaded garment editor. Model provenance: assets/tee-LICENSE.txt.
 // Cada estampa é um "projetor": a malha inteira da camiseta desenhada de novo com um material que
 // projeta a arte a partir de um ponto e uma normal da superfície (frente, costas, mangas ou lateral).
-// Mover, girar ou escalar só troca a matriz do projetor — sem reconstruir geometria durante o arraste.
+// Mover, girar ou escalar só troca a matriz do projetor, sem reconstruir geometria durante o arraste.
 import {CHEST_Y, UNIT, printFrame, frameUV, projectorMatrix, sliderPosition, zoneOf, dragPlace, ZONE_LABEL} from './studio-placement.js';
 const $ = (s,r=document) => r.querySelector(s);
 const preview = $('#design-preview'), footer = $('.preview-footer');
