@@ -4,6 +4,8 @@ import {online,fetchProducts,rpc,uploadDesign,dataURLToBlob,getUser,signIn,signU
 const $=(selector,root=document)=>root.querySelector(selector);
 const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 let filter='all';
+const BASE_LABEL={white:'Off white',black:'Preto lavado',brown:'Marrom'};
+const baseName=b=>BASE_LABEL[b]||'Preto lavado';
 function graphicHTML(p){return p.graphic?`<span class="product-graphic ${p.graphicClass}">${esc(p.graphic)}</span>`:'';}
 const TEE_WIDTHS=[400,800,1254];
 function teePicture(base,alt,sizes,attrs=''){return `<picture><source type="image/webp" srcset="${TEE_WIDTHS.map(w=>`assets/tee-${base}-${w}.webp ${w}w`).join(', ')}" sizes="${sizes}"><img src="assets/tee-${base}-1254.jpg" alt="${alt}" width="1254" height="1254" decoding="async" ${attrs}></picture>`;}
@@ -12,7 +14,7 @@ function renderCatalog(){
  let products=PRODUCTS.filter(p=>(filter==='all'||p.category===filter)&&`${p.name} ${p.color}`.toLocaleLowerCase('pt-BR').includes(query));
  if($('#sort').value==='price-low')products.sort((a,b)=>a.price-b.price);
  if($('#sort').value==='price-high')products.sort((a,b)=>b.price-a.price);
- $('#product-grid').innerHTML=products.map((p,i)=>`<article class="product-card"><button class="product-image-button" data-product="${p.id}"><span class="sr-only">Ver ${p.name}: </span><div class="product-visual">${teePicture(p.base,`${p.name}, ${p.color}`,'(max-width:700px) 48vw, 24vw','loading="lazy"')}${graphicHTML(p)}</div><span class="product-tag">${p.tag}</span><span class="product-add" aria-hidden="true">＋</span></button><div class="product-meta"><h3><a href="#produto-${p.id}">${p.name}</a></h3><span class="price">${money(p.price)}</span></div><p class="installments">${INSTALLMENTS}x de ${money(installment(p.price))} sem juros</p><div class="product-sub"><span><i class="color-dot" style="background:${p.base==='black'?'#28292b':'#fafafa'}"></i>${p.color}</span><span>P — GG</span></div></article>`).join('');
+ $('#product-grid').innerHTML=products.map((p,i)=>`<article class="product-card"><button class="product-image-button" data-product="${p.id}"><span class="sr-only">Ver ${p.name}: </span><div class="product-visual">${teePicture(p.base,`${p.name}, ${p.color}`,'(max-width:700px) 48vw, 24vw','loading="lazy"')}${graphicHTML(p)}</div><span class="product-tag">${p.tag}</span><span class="product-add" aria-hidden="true">＋</span></button><div class="product-meta"><h3><a href="#produto-${p.id}">${p.name}</a></h3><span class="price">${money(p.price)}</span></div><p class="installments">${INSTALLMENTS}x de ${money(installment(p.price))} sem juros</p><div class="product-sub"><span><i class="color-dot" style="background:${p.swatch}"></i>${p.color}</span><span>P — GG</span></div></article>`).join('');
  $('#product-count').textContent=`${products.length} ${products.length===1?'peça':'peças'} / coleção 01`;
  $('#empty-search').hidden=products.length>0;
 }
@@ -45,7 +47,7 @@ $('.search-toggle').addEventListener('click',()=>{$('.search-row').hidden=false;
 
 function showProduct(id){
  const p=PRODUCTS.find(p=>p.id===id);if(!p)return;
- $('#product-detail').innerHTML=`<div class="detail-layout"><div class="detail-visual"><div class="product-visual">${teePicture(p.base,p.name,'(max-width:700px) 94vw, 450px')}${graphicHTML(p)}</div></div><div class="detail-copy"><span class="eyebrow">DUAVESSO / ${p.category==='graphic'?'ESTAMPADAS':'ESSENCIAIS'}</span><h2>${p.name}</h2><div class="price">${money(p.price)}</div><p class="installments">ou ${INSTALLMENTS}x de ${money(installment(p.price))} sem juros</p><p>${p.description}</p><p><i class="color-dot" style="background:${p.base==='black'?'#28292b':'#fafafa'}"></i> ${p.color}</p><span style="font-size:14px">Escolha seu tamanho</span><div class="size-options" role="group" aria-label="Tamanho da camiseta">${SIZES.map(s=>`<button data-size="${s}" aria-pressed="false">${s}</button>`).join('')}</div><button class="text-link size-guide-button">Guia de medidas ↗</button><button class="button button-blue" id="add-product" disabled>Selecione um tamanho <span>＋</span></button><ul class="trust-row"><li>Frete grátis a partir de ${money(FREE_SHIPPING_MIN)}</li><li>Troca fácil em 30 dias</li><li>Pix ou cartão em até ${INSTALLMENTS}x</li></ul><dl class="specs"><div><dt>Tecido</dt><dd>${p.fabric}</dd></div><div><dt>Acabamento</dt><dd>${p.finish}</dd></div>${p.print?`<div><dt>Estampa</dt><dd>${p.print}</dd></div>`:''}<div><dt>Caimento</dt><dd>${p.fit}</dd></div><div><dt>Cuidados</dt><dd>${p.care}</dd></div></dl><p class="helper">Imagem, preço e características para demonstração.</p></div></div>`;
+ $('#product-detail').innerHTML=`<div class="detail-layout"><div class="detail-visual"><div class="product-visual">${teePicture(p.base,p.name,'(max-width:700px) 94vw, 450px')}${graphicHTML(p)}</div></div><div class="detail-copy"><span class="eyebrow">DUAVESSO / ${p.category==='graphic'?'ESTAMPADAS':'ESSENCIAIS'}</span><h2>${p.name}</h2><div class="price">${money(p.price)}</div><p class="installments">ou ${INSTALLMENTS}x de ${money(installment(p.price))} sem juros</p><p>${p.description}</p><p><i class="color-dot" style="background:${p.swatch}"></i> ${p.color}</p><span style="font-size:14px">Escolha seu tamanho</span><div class="size-options" role="group" aria-label="Tamanho da camiseta">${SIZES.map(s=>`<button data-size="${s}" aria-pressed="false">${s}</button>`).join('')}</div><button class="text-link size-guide-button">Guia de medidas ↗</button><button class="button button-blue" id="add-product" disabled>Selecione um tamanho <span>＋</span></button><ul class="trust-row"><li>Frete grátis a partir de ${money(FREE_SHIPPING_MIN)}</li><li>Troca fácil em 30 dias</li><li>Pix ou cartão em até ${INSTALLMENTS}x</li></ul><dl class="specs"><div><dt>Tecido</dt><dd>${p.fabric}</dd></div><div><dt>Acabamento</dt><dd>${p.finish}</dd></div>${p.print?`<div><dt>Estampa</dt><dd>${p.print}</dd></div>`:''}<div><dt>Caimento</dt><dd>${p.fit}</dd></div><div><dt>Cuidados</dt><dd>${p.care}</dd></div></dl><p class="helper">Imagem, preço e características para demonstração.</p></div></div>`;
  let selected='';
  $$('[data-size]',$('#product-detail')).forEach(b=>b.addEventListener('click',()=>{selected=b.dataset.size;$$('[data-size]',$('#product-detail')).forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#add-product').disabled=false;$('#add-product').innerHTML='Adicionar à sacola <span>＋</span>';}));
  $('#add-product').addEventListener('click',()=>{if(addCatalogItem(p.id,selected)){closeDialog($('#product-dialog'));showCart();}});
@@ -140,7 +142,7 @@ $('#view-orders').addEventListener('click',()=>{
   e.preventDefault();const form=e.target,out=$('#lookup-result');if(!form.reportValidity())return;
   out.textContent='Consultando…';
   try{const o=await rpc('get_order',{p_code:new FormData(form).get('code'),p_email:new FormData(form).get('email')});
-   out.innerHTML=o?orderRecordHTML(o.code,o.total_cents,`${esc(STATUS_LABEL[o.status]||o.status)} · ${esc(new Date(o.created_at).toLocaleDateString('pt-BR'))} · ${esc(o.payment)}`,(o.items||[]).map(i=>`<li>${esc(i.name)} · ${i.base==='white'?'Branco giz':'Preto lavado'} · ${esc(i.size)} × ${esc(i.qty)}</li>`).join('')):'<p class="helper">Nenhum pedido encontrado com esse código e e-mail.</p>';
+   out.innerHTML=o?orderRecordHTML(o.code,o.total_cents,`${esc(STATUS_LABEL[o.status]||o.status)} · ${esc(new Date(o.created_at).toLocaleDateString('pt-BR'))} · ${esc(o.payment)}`,(o.items||[]).map(i=>`<li>${esc(i.name)} · ${baseName(i.base)} · ${esc(i.size)} × ${esc(i.qty)}</li>`).join('')):'<p class="helper">Nenhum pedido encontrado com esse código e e-mail.</p>';
   }catch(error){out.innerHTML=`<p class="helper">${esc(error.message)}</p>`;}
  });
 });
@@ -173,7 +175,7 @@ function setMode(mode){
  $('#create-fields').hidden=mode!=='create';$('#brief-fields').hidden=mode!=='brief';
  $('#custom-label').textContent=mode==='brief'?'Sua camiseta com estampa sob medida':'Sua camiseta personalizada';
  $('#custom-price').textContent=money(CUSTOM[mode].price);
- const base=PRODUCTS.find(p=>p.id==='essencial-branca').price;
+ const base=Math.min(...PRODUCTS.filter(p=>p.category==='essential').map(p=>p.price));
  $('#custom-breakdown').textContent=`Base Essencial ${money(base)} + ${mode==='brief'?'criação da arte e estampa':'estampa'} ${money(CUSTOM[mode].price-base)}`;
  $('#custom-helper').textContent=mode==='brief'?'Criação da arte inclusa. Você aprova a prévia antes da produção.':'Personalização inclusa: frente, costas, mangas ou lateral, com até 4 estampas.';
  renderDesign();
@@ -396,7 +398,7 @@ async function loadProfile(){if(profile||!getUser())return profile;try{profile=a
 const UF_LIST=[['AC','Acre'],['AL','Alagoas'],['AP','Amapá'],['AM','Amazonas'],['BA','Bahia'],['CE','Ceará'],['DF','Distrito Federal'],['ES','Espírito Santo'],['GO','Goiás'],['MA','Maranhão'],['MT','Mato Grosso'],['MS','Mato Grosso do Sul'],['MG','Minas Gerais'],['PA','Pará'],['PB','Paraíba'],['PR','Paraná'],['PE','Pernambuco'],['PI','Piauí'],['RJ','Rio de Janeiro'],['RN','Rio Grande do Norte'],['RS','Rio Grande do Sul'],['RO','Rondônia'],['RR','Roraima'],['SC','Santa Catarina'],['SP','São Paulo'],['SE','Sergipe'],['TO','Tocantins']];
 function shipLabel(s){return s==='express'?'Frete expresso':'Frete padrão';}
 function orderCardHTML(o){
- const items=(o.order_items||[]).map(i=>`<li><span class="oi-name">${esc(i.name)}</span><span class="oi-meta">${i.base==='white'?'Branco giz':'Preto lavado'} · Tam ${esc(i.size)} · ${esc(i.qty)}×</span><span class="oi-price">${money((i.unit_price_cents||0)*i.qty)}</span></li>`).join('');
+ const items=(o.order_items||[]).map(i=>`<li><span class="oi-name">${esc(i.name)}</span><span class="oi-meta">${baseName(i.base)} · Tam ${esc(i.size)} · ${esc(i.qty)}×</span><span class="oi-price">${money((i.unit_price_cents||0)*i.qty)}</span></li>`).join('');
  const st=o.status||'';
  return `<article class="order-card"><div class="order-card-top"><div class="order-code-wrap"><span class="order-code">${esc(o.code)}</span><span class="order-date">${esc(new Date(o.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}))}</span></div><span class="status-badge status-${esc(st)}">${esc(ORDER_STATUS[st]||st)}</span></div><ul class="order-items">${items}</ul><div class="order-card-foot"><span class="order-ship">${esc(shipLabel(o.shipping))} · ${esc(o.payment)}</span><span class="order-total">Total <strong>${money(o.total_cents)}</strong></span></div></article>`;
 }

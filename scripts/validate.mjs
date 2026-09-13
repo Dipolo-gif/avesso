@@ -7,7 +7,7 @@ const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);
 assert.equal(new Set(ids).size,ids.length,'Duplicate element IDs');
 const refs=[...html.matchAll(/(?:src|href)="([^"#]+)"/g)].map(m=>m[1]).filter(x=>!x.startsWith('http'));
 for(const m of [...html.matchAll(/(?:srcset|imagesrcset)="([^"]+)"/g),...app.matchAll(/assets\/tee-\$\{base\}-(\d+)\.(webp|jpg)/g)]){
- if(m[2])for(const base of ['white','black'])refs.push(`assets/tee-${base}-${m[1]}.${m[2]}`);
+ if(m[2])for(const base of ['white','black','brown'])refs.push(`assets/tee-${base}-${m[1]}.${m[2]}`);
  else refs.push(...m[1].split(',').map(s=>s.trim().split(/\s+/)[0]));
 }
 refs.push(...[...app.matchAll(/'(assets\/[^']+\.(?:webp|jpg|png))'/g)].map(m=>m[1]));

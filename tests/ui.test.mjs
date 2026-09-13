@@ -28,25 +28,25 @@ async function setup(storage={},fetchStub){
 }
 test('catalog filters and product selection feed the same persisted cart',async()=>{
  const s=await setup();try{
- assert.equal(s.doc.querySelectorAll('.product-card').length,4);
- s.click('[data-filter="essential"]');assert.equal(s.doc.querySelectorAll('.product-card').length,2);
- s.click('[data-product="essencial-preta"]');assert(s.doc.querySelector('#product-dialog').open);
+ assert.equal(s.doc.querySelectorAll('.product-card').length,6);
+ s.click('[data-filter="essential"]');assert.equal(s.doc.querySelectorAll('.product-card').length,4);
+ s.click('[data-product="heavy-preta"]');assert(s.doc.querySelector('#product-dialog').open);
  assert(s.doc.querySelector('#add-product').disabled);
  s.click('[data-size="G"]');s.click('#add-product');
  assert(s.doc.querySelector('#cart-dialog').open);assert.equal(s.doc.querySelector('#cart-count').textContent,'1');
- const stored=JSON.parse(s.w.localStorage.getItem('duavesso.cart.v1'));assert.equal(stored[0].size,'G');assert.equal(stored[0].price,8990);
+ const stored=JSON.parse(s.w.localStorage.getItem('duavesso.cart.v1'));assert.equal(stored[0].size,'G');assert.equal(stored[0].price,13990);
  s.click('[data-qty="1"]');assert.equal(s.doc.querySelector('#cart-count').textContent,'2');
  s.click('[data-remove]');assert.equal(s.doc.querySelector('#cart-count').textContent,'0');assert(s.doc.querySelector('#continue-shopping'));
  }finally{s.close();}
 });
 test('checkout confirms a simulated order and never persists contact or address',async()=>{
  const s=await setup();try{
- s.click('[data-product="off-line"]');s.click('[data-size="M"]');s.click('#add-product');s.click('#begin-checkout');s.click('#fill-demo');
+ s.click('[data-product="heavy-avesso"]');s.click('[data-size="M"]');s.click('#add-product');s.click('#begin-checkout');s.click('#fill-demo');
  const form=s.doc.querySelector('#checkout-form');assert(form.checkValidity());
  const express=s.doc.querySelector('[value="express"]');express.checked=true;express.dispatchEvent(new s.w.Event('change',{bubbles:true}));
  form.dispatchEvent(new s.w.Event('submit',{bubbles:true,cancelable:true}));
  assert(s.doc.querySelector('#finish-order'));assert.equal(s.doc.querySelector('#cart-count').textContent,'0');
- const raw=s.w.localStorage.getItem('duavesso.orders.v1'),order=JSON.parse(raw)[0];assert.equal(order.total,13480);assert.equal(order.shipping,'express');assert.equal(order.items[0].size,'M');assert(!raw.includes('cliente@example.com'));assert(!raw.includes('Rua de Exemplo'));assert(!raw.includes('Cliente de Exemplo'));
+ const raw=s.w.localStorage.getItem('duavesso.orders.v1'),order=JSON.parse(raw)[0];assert.equal(order.total,18480);assert.equal(order.shipping,'express');assert.equal(order.items[0].size,'M');assert(!raw.includes('cliente@example.com'));assert(!raw.includes('Rua de Exemplo'));assert(!raw.includes('Cliente de Exemplo'));
  s.click('#finish-order');s.click('#view-orders');assert(s.doc.querySelector('#info-content').textContent.includes(order.id));
  }finally{s.close();}
 });
@@ -76,8 +76,8 @@ test('imperative tools register with schemas and reject invalid writes without c
  const s=await setup();try{
  assert.equal(s.registry.size,2);const read=s.registry.get('read_duavesso_catalog_and_cart'),add=s.registry.get('add_duavesso_catalog_item_to_cart');
  assert.equal(read.annotations.readOnlyHint,true);assert.equal(add.inputSchema.required.length,2);
- assert.equal(read.execute({}).totals.count,0);assert.throws(()=>add.execute({productId:'off-line',size:'INVALID'}),/válidos/);assert.equal(read.execute({}).totals.count,0);
- const result=add.execute({productId:'off-line',size:'M'});assert.equal(result.added,true);assert.equal(read.execute({}).totals.count,1);assert.equal(s.doc.querySelector('#cart-count').textContent,'1');assert(s.doc.querySelector('#cart-dialog').open);
+ assert.equal(read.execute({}).totals.count,0);assert.throws(()=>add.execute({productId:'heavy-avesso',size:'INVALID'}),/válidos/);assert.equal(read.execute({}).totals.count,0);
+ const result=add.execute({productId:'heavy-avesso',size:'M'});assert.equal(result.added,true);assert.equal(read.execute({}).totals.count,1);assert.equal(s.doc.querySelector('#cart-count').textContent,'1');assert(s.doc.querySelector('#cart-dialog').open);
  }finally{s.close();}
 });
 test('with the API online the catalog comes from the server and checkout submits an order without client prices',async()=>{
@@ -138,7 +138,7 @@ test('accounts: signup asks for confirmation, login updates header, account list
  s.click('#open-account');await new Promise(r=>setTimeout(r,30));
  const account=s.doc.querySelector('#account-content').textContent;assert(account.includes('AV-DB-1'));assert(account.includes('Em produção'));assert.equal(s.doc.querySelector('#profile-form input[name=city]').value,'Fortaleza');
  s.doc.querySelector('#account-dialog').close();
- s.click('[data-product="off-line"]');s.click('[data-size="M"]');s.click('#add-product');s.click('#begin-checkout');await new Promise(r=>setTimeout(r,20));
+ s.click('[data-product="heavy-avesso"]');s.click('[data-size="M"]');s.click('#add-product');s.click('#begin-checkout');await new Promise(r=>setTimeout(r,20));
  const form=s.doc.querySelector('#checkout-form');assert.equal(form.elements.namedItem('email').value,'nova@example.com');assert(form.elements.namedItem('email').readOnly);assert.equal(form.elements.namedItem('address').value,'Rua Um, 10');
  const authed=calls.find(c=>c.url.includes('/rest/v1/orders'));assert.equal(authed.init.headers.Authorization,'Bearer tok');
  s.doc.querySelector('#checkout-dialog').close();s.click('#open-account');await new Promise(r=>setTimeout(r,30));s.click('#sign-out');await new Promise(r=>setTimeout(r,20));
