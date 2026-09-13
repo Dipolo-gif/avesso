@@ -3,9 +3,9 @@
 import sharp from 'sharp';
 const BASE = 'C:/Users/franc/.codex/generated_images/01a0986c-a7cd-7093-953e-52fdfbc188e3';
 const SRC = {
-  1: `${BASE}/exec-5f8b3351-78c2-4c26-8f7e-14b86878bce3.png`, // frente parada
-  2: `${BASE}/exec-d2a36699-9739-41a1-89cd-d836aaccaf22.png`, // frente andando
-  3: `${BASE}/exec-68299a4a-28a5-4193-89f3-b49efa85bb8a.png`, // costas
+  1: `${BASE}/Homem de Preto, Estampa 1 -Frente.png`,   // frente parada (preto sólido, cor corrigida)
+  2: `${BASE}/Homem de Preto, Estampa 1 -Lado (1).png`, // frente andando
+  3: `${BASE}/Homem de Preto, Estampa 1 -Costas.png`,   // costas
 };
 const WIDTHS = [400, 800, 1024];
 for (const [n, src] of Object.entries(SRC)) {
