@@ -28,13 +28,14 @@ async function setup(storage={},fetchStub){
 }
 test('catalog filters and product selection feed the same persisted cart',async()=>{
  const s=await setup();try{
- assert.equal(s.doc.querySelectorAll('.product-card').length,8);
- s.click('[data-filter="essential"]');assert.equal(s.doc.querySelectorAll('.product-card').length,4);
- s.click('[data-product="heavy-preta"]');assert(s.doc.querySelector('#product-dialog').open);
+ assert.equal(s.doc.querySelectorAll('.product-card').length,3);
+ assert.equal(s.doc.querySelector('[data-filter="essential"]'),null,'aba Essenciais removida');
+ s.click('[data-filter="graphic"]');assert.equal(s.doc.querySelectorAll('.product-card').length,3);
+ s.click('[data-product="heavy-eclipse"]');assert(s.doc.querySelector('#product-dialog').open);
  assert(s.doc.querySelector('#add-product').disabled);
  s.click('[data-size="G"]');s.click('#add-product');
  assert(s.doc.querySelector('#cart-dialog').open);assert.equal(s.doc.querySelector('#cart-count').textContent,'1');
- const stored=JSON.parse(s.w.localStorage.getItem('duavesso.cart.v1'));assert.equal(stored[0].size,'G');assert.equal(stored[0].price,13990);
+ const stored=JSON.parse(s.w.localStorage.getItem('duavesso.cart.v1'));assert.equal(stored[0].size,'G');assert.equal(stored[0].price,15990);
  s.click('[data-qty="1"]');assert.equal(s.doc.querySelector('#cart-count').textContent,'2');
  s.click('[data-remove]');assert.equal(s.doc.querySelector('#cart-count').textContent,'0');assert(s.doc.querySelector('#continue-shopping'));
  }finally{s.close();}
@@ -92,16 +93,16 @@ test('the catalog stays local (stale server products ignored) and online checkou
  };
  const s=await setup({},fetchStub);try{
  await new Promise(r=>setTimeout(r,20));
- assert.equal(s.doc.querySelectorAll('.product-card').length,8,'catálogo curado local (8 peças), não a tabela antiga do servidor');
+ assert.equal(s.doc.querySelectorAll('.product-card').length,3,'catálogo curado local (3 peças), não a tabela antiga do servidor');
  assert.equal(s.doc.querySelector('[data-product="off-line"]'),null,'produto antigo do servidor é ignorado');
- assert(s.doc.querySelector('[data-product="americana-off"]'),'produto local presente');
- s.click('[data-product="americana-off"]');s.click('[data-size="M"]');s.click('#add-product');s.click('#begin-checkout');
+ assert(s.doc.querySelector('[data-product="heavy-eclipse"]'),'produto local presente');
+ s.click('[data-product="heavy-eclipse"]');s.click('[data-size="M"]');s.click('#add-product');s.click('#begin-checkout');
  assert.equal(s.doc.querySelector('#fill-demo'),null);
  const form=s.doc.querySelector('#checkout-form');
  for(const [k,v] of Object.entries({name:'Cliente Real',email:'cliente@example.com',cep:'60000-000',city:'Fortaleza',address:'Rua Um, 10'}))form.elements.namedItem(k).value=v;
  form.dispatchEvent(new s.w.Event('submit',{bubbles:true,cancelable:true}));await new Promise(r=>setTimeout(r,30));
  const order=calls.find(c=>c.url.includes('place_order'));assert(order);const body=JSON.parse(order.init.body);
- assert.deepEqual(body.p_items,[{kind:'catalog',product_id:'americana-off',size:'M',qty:1}]);assert.equal(body.p_customer.email,'cliente@example.com');
+ assert.deepEqual(body.p_items,[{kind:'catalog',product_id:'heavy-eclipse',size:'M',qty:1}]);assert.equal(body.p_customer.email,'cliente@example.com');
  assert(order.init.headers.apikey.startsWith('sb_publishable_'));
  assert(s.doc.querySelector('.order-id').textContent.includes('AV-TEST-0001'));assert.equal(s.doc.querySelector('#cart-count').textContent,'0');
  const raw=s.w.localStorage.getItem('duavesso.orders.v1');assert(raw.includes('AV-TEST-0001'));assert(!raw.includes('cliente@example.com'));

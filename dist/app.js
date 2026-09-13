@@ -184,8 +184,8 @@ function setMode(mode){
  $('#create-fields').hidden=mode!=='create';$('#brief-fields').hidden=mode!=='brief';
  $('#custom-label').textContent=mode==='brief'?'Sua camiseta com estampa sob medida':'Sua camiseta personalizada';
  $('#custom-price').textContent=money(CUSTOM[mode].price);
- const base=Math.min(...PRODUCTS.filter(p=>p.category==='essential').map(p=>p.price));
- $('#custom-breakdown').textContent=`Base Essencial ${money(base)} + ${mode==='brief'?'criação da arte e estampa':'estampa'} ${money(CUSTOM[mode].price-base)}`;
+ const base=8990;
+ $('#custom-breakdown').textContent=`Camiseta base ${money(base)} + ${mode==='brief'?'criação da arte e estampa':'estampa'} ${money(CUSTOM[mode].price-base)}`;
  $('#custom-helper').textContent=mode==='brief'?'Criação da arte inclusa. Você aprova a prévia antes da produção.':'Personalização inclusa: frente, costas, mangas ou lateral, com até 4 estampas.';
  renderDesign();
 }
