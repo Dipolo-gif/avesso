@@ -5,7 +5,8 @@ const HEAVY_SPEC={fabric:'Suedine premium (algodão + poliamida) · 250 g/m²',f
 export const PRODUCTS=[
  {id:'heavy-avesso',name:'Heavy · Do Avesso',category:'graphic',color:'Preto lavado',base:'black',swatch:'#26272a',photos:['tee-porta-1','tee-porta-2','tee-porta-3'],price:15990,tag:'ESTAMPA AUTORAL',graphic:'DO SEU\nAVESSO.',graphicClass:'graphic-off',description:'Nossa peça mais encorpada, suedine 250 g, com uma estampa para vestir do seu avesso. O modelo também vem liso em preto, off-white e marrom.',print:'Serigrafia à base d’água, toque leve, resistente a lavagens',...HEAVY_SPEC},
  {id:'heavy-faces',name:'Heavy · Dois Lados',category:'graphic',color:'Marrom',base:'brown',swatch:'#8a6a4f',photos:['tee-faces-1','tee-faces-2','tee-faces-3'],price:15990,tag:'NOVA ESTAMPA',graphic:'',graphicClass:'',description:'Suedine premium 250 g num marrom terroso, com a estampa Dois Lados nas costas: duas faces do mesmo avesso. Oversized, caimento reto.',print:'Serigrafia à base d’água, toque leve, resistente a lavagens',...HEAVY_SPEC},
- {id:'heavy-eclipse',name:'Heavy · Eclipse',category:'graphic',color:'Marrom',base:'brown',swatch:'#8a6a4f',photos:['tee-eclipse-1','tee-eclipse-2','tee-eclipse-3'],price:15990,tag:'NOVA ESTAMPA',graphic:'',graphicClass:'',description:'Suedine premium 250 g em marrom, com a estampa Eclipse no peito. Oversized, encorpada e com caimento reto.',print:'Serigrafia à base d’água, toque leve, resistente a lavagens',...HEAVY_SPEC}
+ {id:'heavy-eclipse',name:'Heavy · Eclipse',category:'graphic',color:'Marrom',base:'brown',swatch:'#8a6a4f',photos:['tee-eclipse-1','tee-eclipse-2','tee-eclipse-3'],price:15990,tag:'NOVA ESTAMPA',graphic:'',graphicClass:'',description:'Suedine premium 250 g em marrom, com a estampa Eclipse no peito. Oversized, encorpada e com caimento reto.',print:'Serigrafia à base d’água, toque leve, resistente a lavagens',...HEAVY_SPEC},
+ {id:'simples',name:'Oversized Simples',category:'simples',color:'Preto lavado',base:'black',swatch:'#26272a',price:11990,tag:'BÁSICA',graphic:'',graphicClass:'',variants:[{base:'black',color:'Preto lavado',swatch:'#26272a',photos:['tee-simples-preto-1','tee-simples-preto-2','tee-simples-preto-3']},{base:'white',color:'Off white',swatch:'#efece3',photos:['tee-simples-branco-1','tee-simples-branco-2','tee-simples-branco-3']},{base:'brown',color:'Marrom',swatch:'#8a6a4f',photos:['tee-simples-marrom-1','tee-simples-marrom-2','tee-simples-marrom-3']}],description:'A base oversized da duavesso: suedine premium 250 g, gola canelada e caimento reto. Sem estampa, só o dv na manga. Vem em preto, off-white e marrom.',print:'',...HEAVY_SPEC}
 ]
 export function setProducts(list){PRODUCTS.splice(0,PRODUCTS.length,...list);}
 export const INSTALLMENTS=3;
@@ -80,7 +81,10 @@ export function normalizeCart(value){
  return value.slice(0,30).flatMap(x=>{
   if(!x||!SIZES.includes(x.size)||!Number.isInteger(x.qty)||x.qty<1||x.qty>10)return [];
   const p=PRODUCTS.find(p=>p.id===x.id);
-  if(p)return [{...p,key:`${p.id}-${x.size}`,size:x.size,qty:x.qty}];
+  if(p){
+   if(p.variants){const v=p.variants.find(v=>v.base===x.base)||p.variants[0],{variants,...rest}=p;return [{...rest,base:v.base,color:v.color,swatch:v.swatch,key:`${p.id}-${v.base}-${x.size}`,size:x.size,qty:x.qty}];}
+   return [{...p,key:`${p.id}-${x.size}`,size:x.size,qty:x.qty}];
+  }
   if(x.id==='custom'&&typeof x.key==='string'&&/^custom-[\w-]+$/.test(x.key)&&['white','black'].includes(x.base)&&validImageURL(x.preview)){const design=sanitizeDesign(x.design),mode=customMode(design);return [{id:'custom',key:x.key,name:CUSTOM[mode].name,category:'custom',base:x.base,color:garmentLabel({...design,color:x.base}),size:x.size,qty:x.qty,price:CUSTOM[mode].price,preview:x.preview,design}];}
   return [];
  });

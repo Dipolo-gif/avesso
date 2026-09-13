@@ -88,3 +88,36 @@ input[type=range]:disabled{opacity:.4}
 .detail-visual.gallery{display:grid;gap:3px;background:#eeeff1;align-self:start}
 .detail-visual.gallery .product-visual{position:relative;aspect-ratio:1024/1536}
 .detail-visual.gallery .product-visual img{width:100%;height:100%;object-fit:cover}
+
+/* Estúdio no mobile: prévia não fixa e mais baixa, para os campos ficarem acessíveis */
+@media(max-width:700px){
+.editor-visual{position:static;box-shadow:none}
+.design-preview{height:min(44vh,74vw)}
+.design-preview.has-3d{aspect-ratio:auto;height:min(50vh,80vw);width:100%;display:flex}
+}
+
+/* Modal de produto: PDP com imagem grande + miniaturas + seletor de cor */
+.product-dialog{width:1120px;max-width:96vw}
+.detail-layout{display:grid;grid-template-columns:1.05fr .95fr}
+.detail-gallery{background:#eeeff1;display:flex;flex-direction:column}
+.detail-main{position:relative;aspect-ratio:1024/1536;overflow:hidden;background:#e6e7e9}
+.detail-main img{width:100%;height:100%;object-fit:cover;display:block}
+.detail-thumbs{display:flex;gap:8px;padding:12px;flex-wrap:wrap}
+.detail-thumb{position:relative;width:58px;aspect-ratio:1024/1536;overflow:hidden;border:1px solid var(--line);background:#e6e7e9;padding:0;flex:none;cursor:pointer;transition:border-color .15s}
+.detail-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.detail-thumb.active{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.detail-color{margin:16px 0}
+.color-select{margin:20px 0 6px}
+.color-select .field-label{display:block;font-size:13px;margin-bottom:10px}
+.detail-swatches{display:flex;gap:11px}
+.detail-swatch{width:34px;height:34px;border-radius:50%;border:2px solid transparent;box-shadow:inset 0 0 0 1px #0002,0 0 0 2px var(--paper);cursor:pointer;padding:0;transition:transform .15s}
+.detail-swatch:hover{transform:scale(1.08)}
+.detail-swatch.active{border-color:var(--ink)}
+.color-dots{display:inline-flex;align-items:center}
+.color-dots .color-dot{margin-right:3px}
+@media(max-width:700px){
+.product-dialog{width:100%}
+.detail-layout{grid-template-columns:1fr}
+.detail-main{aspect-ratio:auto;height:min(60vh,112vw)}
+.detail-thumb{width:50px}
+}

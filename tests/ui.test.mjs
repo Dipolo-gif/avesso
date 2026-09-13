@@ -28,7 +28,7 @@ async function setup(storage={},fetchStub){
 }
 test('catalog filters and product selection feed the same persisted cart',async()=>{
  const s=await setup();try{
- assert.equal(s.doc.querySelectorAll('.product-card').length,3);
+ assert.equal(s.doc.querySelectorAll('.product-card').length,4);
  assert.equal(s.doc.querySelector('[data-filter="essential"]'),null,'aba Essenciais removida');
  s.click('[data-filter="graphic"]');assert.equal(s.doc.querySelectorAll('.product-card').length,3);
  s.click('[data-product="heavy-eclipse"]');assert(s.doc.querySelector('#product-dialog').open);
@@ -93,7 +93,7 @@ test('the catalog stays local (stale server products ignored) and online checkou
  };
  const s=await setup({},fetchStub);try{
  await new Promise(r=>setTimeout(r,20));
- assert.equal(s.doc.querySelectorAll('.product-card').length,3,'catálogo curado local (3 peças), não a tabela antiga do servidor');
+ assert.equal(s.doc.querySelectorAll('.product-card').length,4,'catálogo curado local (4 peças), não a tabela antiga do servidor');
  assert.equal(s.doc.querySelector('[data-product="off-line"]'),null,'produto antigo do servidor é ignorado');
  assert(s.doc.querySelector('[data-product="heavy-eclipse"]'),'produto local presente');
  s.click('[data-product="heavy-eclipse"]');s.click('[data-size="M"]');s.click('#add-product');s.click('#begin-checkout');
@@ -120,9 +120,31 @@ test('produto de fotos: card com 3 poses e modal com galeria das 3',async()=>{
  assert.equal(card.querySelectorAll('.pose.is-active').length,1,'uma pose ativa por padrão');
  assert.equal(card.querySelector('.product-graphic'),null,'sem overlay de texto quando há foto');
  s.click('[data-product="heavy-avesso"]');
- const gallery=s.doc.querySelector('#product-detail .detail-visual.gallery');assert(gallery,'modal abre com galeria');
- assert.equal(gallery.querySelectorAll('.product-visual').length,3,'as 3 poses aparecem no modal');
+ assert(s.doc.querySelector('#product-detail .detail-gallery'),'modal abre com galeria');
+ assert(s.doc.querySelector('#detail-main img'),'imagem principal presente');
+ assert.equal(s.doc.querySelectorAll('#detail-thumbs .detail-thumb').length,3,'3 miniaturas de pose');
+ assert.equal(s.doc.querySelectorAll('#detail-thumbs .detail-thumb.active').length,1,'uma miniatura ativa');
+ s.click('#detail-thumbs [data-pose="2"]');
+ assert(s.doc.querySelector('#detail-main img').getAttribute('src').includes('tee-porta-3'),'clicar na miniatura troca a foto principal');
  assert(s.doc.querySelector('#product-detail [data-size="M"]'),'ainda dá pra escolher tamanho');
+ }finally{s.close();}
+});
+test('produto Simples: seletor de cor troca as fotos e a cor vai pro pedido',async()=>{
+ const s=await setup();try{
+ const card=s.doc.querySelector('[data-product="simples"]').closest('.product-card');assert(card,'card do Simples');
+ assert.equal(card.querySelectorAll('.color-dots .color-dot').length,3,'3 bolinhas de cor no card');
+ s.click('[data-product="simples"]');
+ const sw=[...s.doc.querySelectorAll('.detail-swatch')];assert.equal(sw.length,3,'3 swatches no modal');
+ const mainSrc=()=>s.doc.querySelector('#detail-main img').getAttribute('src');
+ assert(mainSrc().includes('tee-simples-preto'),'começa no preto (padrão)');
+ sw.find(b=>b.dataset.base==='brown').click();
+ assert(mainSrc().includes('tee-simples-marrom'),'ao escolher marrom, a foto principal muda');
+ assert.equal(s.doc.querySelector('#detail-color-name').textContent,'Marrom');
+ assert.equal(s.doc.querySelectorAll('#detail-thumbs .detail-thumb')[0].querySelector('img').getAttribute('src').includes('tee-simples-marrom-1'),true,'miniaturas também trocam de cor');
+ s.click('#product-detail [data-size="G"]');s.click('#add-product');
+ const stored=JSON.parse(s.w.localStorage.getItem('duavesso.cart.v1'));
+ assert.equal(stored[0].base,'brown');assert.equal(stored[0].color,'Marrom');assert.equal(stored[0].size,'G');assert.equal(stored[0].price,11990);
+ assert.equal('variants' in stored[0],false,'não guarda o array de variantes na sacola');
  }finally{s.close();}
 });
 test('accounts: signup asks for confirmation, login updates header, account lists orders, checkout prefills, logout clears',async()=>{
