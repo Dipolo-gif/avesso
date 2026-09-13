@@ -50,7 +50,7 @@
 .profile-form select{border:1px solid var(--line);background:#fff;padding:12px;color:var(--ink);border-radius:0;font:inherit;width:100%;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364666e' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
 .profile-form input:disabled{background:var(--surface);color:var(--muted);cursor:not-allowed}
 .profile-form .field-row{margin:0}
-.wordmark{display:inline-flex}.wordmark img{display:block;height:30px;width:auto}.header .wordmark img{height:34px}.footer-brand .wordmark img{height:44px}@media(max-width:700px){.header .wordmark img{height:27px}.footer-brand .wordmark img{height:36px}}
+.wordmark{display:inline-flex}.wordmark img{display:block;height:30px;width:auto}.footer-brand .wordmark img{height:44px}@media(max-width:700px){.header .wordmark img{height:25px}.footer-brand .wordmark img{height:36px}}
 .preview-3d.is-over{cursor:move}.preview-3d.is-drag,.preview-3d.is-drag:active{cursor:grabbing}
 .tee-tools{position:absolute;inset:0;display:flex;flex-wrap:wrap;align-items:center;align-content:flex-end;gap:8px 12px;padding:12px 14px 10px;background:linear-gradient(0deg,rgba(247,248,249,.97),rgba(247,248,249,.94) 65px,transparent 105px);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);pointer-events:none}
 .tee-camera{position:absolute;top:14px;right:14px;display:flex;gap:4px;background:rgba(255,255,255,.9);border:1px solid #d8dadd;border-radius:8px;padding:3px}
