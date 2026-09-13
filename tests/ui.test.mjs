@@ -28,7 +28,7 @@ async function setup(storage={},fetchStub){
 }
 test('catalog filters and product selection feed the same persisted cart',async()=>{
  const s=await setup();try{
- assert.equal(s.doc.querySelectorAll('.product-card').length,6);
+ assert.equal(s.doc.querySelectorAll('.product-card').length,8);
  s.click('[data-filter="essential"]');assert.equal(s.doc.querySelectorAll('.product-card').length,4);
  s.click('[data-product="heavy-preta"]');assert(s.doc.querySelector('#product-dialog').open);
  assert(s.doc.querySelector('#add-product').disabled);
@@ -92,7 +92,7 @@ test('the catalog stays local (stale server products ignored) and online checkou
  };
  const s=await setup({},fetchStub);try{
  await new Promise(r=>setTimeout(r,20));
- assert.equal(s.doc.querySelectorAll('.product-card').length,6,'catálogo curado local (6 peças), não a tabela antiga do servidor');
+ assert.equal(s.doc.querySelectorAll('.product-card').length,8,'catálogo curado local (8 peças), não a tabela antiga do servidor');
  assert.equal(s.doc.querySelector('[data-product="off-line"]'),null,'produto antigo do servidor é ignorado');
  assert(s.doc.querySelector('[data-product="americana-off"]'),'produto local presente');
  s.click('[data-product="americana-off"]');s.click('[data-size="M"]');s.click('#add-product');s.click('#begin-checkout');
