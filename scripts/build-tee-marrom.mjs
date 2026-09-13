@@ -2,8 +2,8 @@
 import sharp from 'sharp';
 const BASE = 'C:/Users/franc/.codex/generated_images/01a0986c-a7cd-7093-953e-52fdfbc188e3';
 const SETS = {
-  'tee-faces': [   // Mulher · Estampa 1 (duas faces) — Frente, 1.4 (andando), Costas
-    `${BASE}/Mulher Marrom Estampa 1 - Frente.png`,
+  'tee-faces': [   // Mulher · Estampa 1 (duas faces) — Frente (oficial), 1.4 (andando), Costas
+    `${BASE}/Mulher Marrom Estampa 1- Frente Oficial.png`,
     `${BASE}/Mulher Marrom Estampa 1 - 1.4.png`,
     `${BASE}/Mulher Marrom Estampa 1 - Costas (1).png`,
   ],
